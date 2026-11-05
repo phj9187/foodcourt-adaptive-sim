@@ -34,8 +34,9 @@ class DashboardTests(unittest.TestCase):
     def test_charts_keep_negative_values_and_escape_names(self):
         points=[dict(block=0,percent=-20.,delta=-.1),dict(block=2,percent=10.,delta=.05)]
         svg=chart(points,'percent','<title>','%')
-        self.assertIn('-20.000%',svg);self.assertIn('&lt;title&gt;',svg)
+        self.assertIn('-20.0000%',svg);self.assertIn('&lt;title&gt;',svg)
         self.assertIn('circle',svg)
+        self.assertIn('기준점수 0 이하',chart([dict(block=0,percent=None)],'percent','rate'))
 
 
 if __name__=='__main__':unittest.main()
