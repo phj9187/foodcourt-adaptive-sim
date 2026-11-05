@@ -98,6 +98,7 @@ STYLE = '''
 *{box-sizing:border-box}body{margin:0;background:#f3f6fb;color:#182538;font:15px system-ui,-apple-system,sans-serif}
 .wrap{max-width:1450px;margin:auto;padding:26px}h1{font-size:27px;margin:0 0 8px}h2{font-size:19px;margin:0}
 .sub,.muted{color:#627187}.notice{background:#fff7df;border-left:4px solid #e4ad34;padding:12px;margin:16px 0}
+.formula{background:white;border:1px solid #dfe6ef;border-radius:14px;padding:18px 22px;margin:18px 0}.formula-title{font-weight:700;margin-bottom:9px}.equation{font-size:22px;line-height:1.7;font-weight:600;color:#304b9c;overflow-wrap:anywhere}.legend{line-height:1.8;margin-top:10px;color:#45566d}.legend b{color:#182538}
 .stats{display:flex;gap:12px;flex-wrap:wrap;margin:20px 0}.stat{background:white;border-radius:12px;padding:15px 22px;min-width:170px}
 .stat b{display:block;font-size:25px;margin-top:5px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:16px}
 .card{background:white;border:1px solid #dfe6ef;border-radius:14px;padding:18px;overflow:hidden}.head{display:flex;justify-content:space-between;gap:10px;align-items:start}
@@ -115,6 +116,17 @@ def render(data, refresh=False):
     done=sum(j['block'] for j in jobs);total=sum(j['total'] for j in jobs)
     header=f'''<h1>푸드코트 AI · 실시간 도입 효과</h1>
     <div class="sub">실험 {escape(data['experiment'])} · {escape(data['refreshed'])}</div>
+    <section class="formula"><div class="formula-title">보상을 위한 하루 평가점수식 · F</div>
+    <div class="equation">F = λ × (aT<sup>p</sup> + bP<sup>p</sup> + cW<sup>p</sup>)<br>
+    ＋ (1 − λ) × [q × (R − K) / (N × 6,000) − (1 − q) × D / (N × 6,000)]</div>
+    <div class="legend"><b>고객점수:</b> T = 취향 적합도, P = 가격 만족도, W = 대기 만족도.
+    세 값은 미구매자를 0으로 포함한 하루 방문자 평균이고, 지수 p는 평균을 구한 뒤 적용해요.<br>
+    <b>가게 성과:</b> R = 매출, K = 판매분 식재료비, D = 폐기비용(모두 원), N = 하루 방문자 수(최소 1).
+    가게 성과는 방문자당 6,000원으로 나누어 크기를 맞춰요.<br>
+    <b>각 카드의 계수:</b> a = 취향, b = 가격, c = 대기(a+b+c=1), λ = 고객 비중,
+    q = 판매기여 비중, p = 지수.<br>
+    고객 비중 λ가 크면 고객점수를, q가 크면 가게 성과 중 판매기여를 더 중시해요.
+    여러 날의 F를 합쳐 학습하고, 비교표에서는 하루 평균 F를 사용해요.</div></section>
     <div class="stats"><div class="stat">학습 운영기간<b>{done:,} / {total:,}</b></div>
     <div class="stat">모델 완료<b>{complete} / {len(jobs)}</b></div>
     <div class="stat">현재 진행 중<b>{active}</b></div></div>
@@ -128,7 +140,7 @@ def render(data, refresh=False):
         latest=j['latest'] or {};delta=latest.get('delta');percent=latest.get('percent')
         color='up' if delta is not None and delta>=0 else 'down' if delta is not None else 'neutral'
         progress=100*j['block']/max(1,j['total'])
-        o=j['objective'];labels=dict(taste='취향',affordability='가격',waiting='대기',customer_share='고객 비중',profit_share='판매기여 비중',power='지수')
+        o=j['objective'];labels=dict(taste='a 취향',affordability='b 가격',waiting='c 대기',customer_share='λ 고객 비중',profit_share='q 판매기여 비중',power='p 지수')
         params=' · '.join(f'{labels[k]} {o[k]:.2f}' for k in labels)
         phase=phases.get(j['phase'],j['phase'])
         if j['evaluated'] is not None and j['phase'] in ('validation','testing'):
