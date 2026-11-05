@@ -1,6 +1,6 @@
 # 가변 푸드코트 추천 시뮬레이션
 
-[Colab에서 열기](https://colab.research.google.com/github/phj9187/foodcourt-adaptive-sim/blob/fcc06cf659d59a945d650da581d3982a62259a06/notebooks/foodcourt_adaptive_colab.ipynb) · [실행 검증 기록](docs/validation_20261105.md)
+[Colab에서 열기](https://colab.research.google.com/github/phj9187/foodcourt-adaptive-sim/blob/d269cef39686764f0e85efcb2632e3f551cb3551/notebooks/foodcourt_adaptive_colab.ipynb) · [실행 검증 기록](docs/validation_20261105.md)
 
 기존 `koisk-simulation`과 별개의 독립 프로젝트입니다. 기존 실행 코드·실험 결과를 불러오지 않습니다. 공개 대학 메뉴 자료의 이름·가격·구성 근거만 출처와 함께 복사해 사용했습니다.
 
