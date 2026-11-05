@@ -1,0 +1,232 @@
+[
+  {
+    "id": "Y00",
+    "name": "자장면",
+    "category": "중식",
+    "price_won": 4500,
+    "price_high_won": 4500,
+    "role": "main",
+    "source_id": "yonsei_2026",
+    "price_status": "published_point"
+  },
+  {
+    "id": "Y01",
+    "name": "간짜장면",
+    "category": "중식",
+    "price_won": 6000,
+    "price_high_won": 6000,
+    "role": "main",
+    "source_id": "yonsei_2026",
+    "price_status": "published_point"
+  },
+  {
+    "id": "Y02",
+    "name": "짬뽕",
+    "category": "중식",
+    "price_won": 5500,
+    "price_high_won": 5500,
+    "role": "main",
+    "source_id": "yonsei_2026",
+    "price_status": "published_point"
+  },
+  {
+    "id": "Y03",
+    "name": "불고기짬뽕",
+    "category": "중식",
+    "price_won": 6500,
+    "price_high_won": 6500,
+    "role": "main",
+    "source_id": "yonsei_2026",
+    "price_status": "published_point"
+  },
+  {
+    "id": "Y04",
+    "name": "탕수육",
+    "category": "중식",
+    "price_won": 5000,
+    "price_high_won": 5000,
+    "role": "side",
+    "source_id": "yonsei_2026",
+    "price_status": "published_point"
+  },
+  {
+    "id": "Y05",
+    "name": "군만두",
+    "category": "중식",
+    "price_won": 2500,
+    "price_high_won": 2500,
+    "role": "side",
+    "source_id": "yonsei_2026",
+    "price_status": "published_point"
+  },
+  {
+    "id": "Y06",
+    "name": "꿔바로우",
+    "category": "중식",
+    "price_won": 6000,
+    "price_high_won": 6000,
+    "role": "side",
+    "source_id": "yonsei_2026",
+    "price_status": "published_point"
+  },
+  {
+    "id": "Y07",
+    "name": "떡갈비마요덮밥",
+    "category": "일식",
+    "price_won": 6500,
+    "price_high_won": 6500,
+    "role": "main",
+    "source_id": "yonsei_2026",
+    "price_status": "published_point"
+  },
+  {
+    "id": "Y08",
+    "name": "불닭소스참치덮밥",
+    "category": "일식",
+    "price_won": 8500,
+    "price_high_won": 8500,
+    "role": "main",
+    "source_id": "yonsei_2026",
+    "price_status": "published_point"
+  },
+  {
+    "id": "Y09",
+    "name": "그릴드치킨토마토파스타",
+    "category": "양식",
+    "price_won": 6900,
+    "price_high_won": 6900,
+    "role": "main",
+    "source_id": "yonsei_2026",
+    "price_status": "published_point"
+  },
+  {
+    "id": "Y10",
+    "name": "허닭 투움바 파스타",
+    "category": "양식",
+    "price_won": 7900,
+    "price_high_won": 7900,
+    "role": "main",
+    "source_id": "yonsei_2026",
+    "price_status": "published_point"
+  },
+  {
+    "id": "Y11",
+    "name": "새우 아보카도 포케",
+    "category": "양식",
+    "price_won": 8500,
+    "price_high_won": 8500,
+    "role": "main",
+    "source_id": "yonsei_2026",
+    "price_status": "published_point"
+  },
+  {
+    "id": "Y12",
+    "name": "통베이컨 알감자샐러드",
+    "category": "양식",
+    "price_won": 8000,
+    "price_high_won": 8000,
+    "role": "main",
+    "source_id": "yonsei_2026",
+    "price_status": "published_point"
+  },
+  {
+    "id": "Y13",
+    "name": "우삼겹쌀국수",
+    "category": "분식",
+    "price_won": 5900,
+    "price_high_won": 6900,
+    "role": "main",
+    "source_id": "yonsei_2026",
+    "price_status": "published_range_low_anchor"
+  },
+  {
+    "id": "Y14",
+    "name": "통등심돈가스",
+    "category": "일식",
+    "price_won": 6900,
+    "price_high_won": 6900,
+    "role": "main",
+    "source_id": "yonsei_2026",
+    "price_status": "published_point"
+  },
+  {
+    "id": "Y15",
+    "name": "육회비빔밥",
+    "category": "일식",
+    "price_won": 5900,
+    "price_high_won": 7900,
+    "role": "main",
+    "source_id": "yonsei_2026",
+    "price_status": "published_range_low_anchor"
+  },
+  {
+    "id": "Y16",
+    "name": "제육덮밥",
+    "category": "일식",
+    "price_won": 3900,
+    "price_high_won": 5900,
+    "role": "main",
+    "source_id": "yonsei_2026",
+    "price_status": "published_range_low_anchor"
+  },
+  {
+    "id": "Y17",
+    "name": "폭풍참치김밥",
+    "category": "분식",
+    "price_won": 3800,
+    "price_high_won": 3800,
+    "role": "main",
+    "source_id": "yonsei_2026",
+    "price_status": "published_point"
+  },
+  {
+    "id": "A18",
+    "name": "야채김밥",
+    "category": "분식",
+    "price_won": null,
+    "price_high_won": null,
+    "role": "main",
+    "source_id": "sejong_2026",
+    "price_status": "not_published_assume_from_band"
+  },
+  {
+    "id": "A19",
+    "name": "오믈렛",
+    "category": "양식",
+    "price_won": null,
+    "price_high_won": null,
+    "role": "main",
+    "source_id": "sejong_2026",
+    "price_status": "not_published_assume_from_band"
+  },
+  {
+    "id": "A20",
+    "name": "치즈돈가스",
+    "category": "일식",
+    "price_won": null,
+    "price_high_won": null,
+    "role": "main",
+    "source_id": "scnu_2022",
+    "price_status": "not_published_assume_from_band"
+  },
+  {
+    "id": "A21",
+    "name": "닭갈비덮밥",
+    "category": "일식",
+    "price_won": null,
+    "price_high_won": null,
+    "role": "main",
+    "source_id": "scnu_2022",
+    "price_status": "not_published_assume_from_band"
+  },
+  {
+    "id": "A22",
+    "name": "라면",
+    "category": "분식",
+    "price_won": null,
+    "price_high_won": null,
+    "role": "main",
+    "source_id": "scnu_2022",
+    "price_status": "not_published_assume_from_band"
+  }
+]
