@@ -15,6 +15,7 @@ from .models import Settings, rng_for, seed_for
 from .design import lhs_objectives, make_court, metrics
 from .environment import simulate
 from .policy import ActorCritic, Collector, update_ppo
+from .dashboard import comparison
 
 
 def atomic_json(path, value):
@@ -110,7 +111,7 @@ def period(court, settings, objective, days, namespace, visitors, model=None,
     return rows, collector.samples if collector else []
 
 
-def evaluate(model, settings, objective, config, split):
+def evaluate(model, settings, objective, config, split, on_progress=None):
     paired = []
     for rep in range(config['evaluation_repeats']):
         for index in range(config[split+'_courts']):
@@ -132,6 +133,8 @@ def evaluate(model, settings, objective, config, split):
                                                              for b,a in zip(baseline,ai)])),
                                    # Relative percentage omitted near zero and for signed scores.
                                    baseline=baseline, ai=ai))
+                if on_progress:
+                    on_progress(len(paired),config['evaluation_repeats']*config[split+'_courts']*2)
     return paired
 
 
@@ -213,6 +216,7 @@ def run(config, output):
             model = ActorCritic(cfg['hidden'])
             optimizer = torch.optim.Adam(model.parameters(),lr=cfg['learning_rate'])
             start, best_score, best, history = 0, -float('inf'), None, []
+            live_history=[]
             checkpoint = job/'checkpoint.pt'
             if checkpoint.exists():
                 try:
@@ -221,8 +225,20 @@ def run(config, output):
                     saved = torch.load(checkpoint.with_suffix('.previous.pt'),map_location='cpu',weights_only=False)
                 model.load_state_dict(saved['model']); optimizer.load_state_dict(saved['optimizer'])
                 start, best_score, best, history = saved['block'], saved['best_score'], saved['best'], saved['history']
+                live_history=saved.get('live_history',[])
                 torch.set_rng_state(saved['torch_rng'])
+            def publish(phase, block, **extra):
+                atomic_json(job/'live.json',dict(phase=phase,block=block,
+                            total=cfg['training_blocks'],history=live_history,**extra))
+            if start==0 and not live_history:
+                publish('validation',0,evaluated=0,
+                        evaluation_total=cfg['evaluation_repeats']*cfg['validation_courts']*2)
+                initial=evaluate(model,settings,objective,cfg,'validation',
+                                 lambda n,total:publish('validation',0,evaluated=n,evaluation_total=total))
+                live_history.append(dict(block=0,**comparison(initial)))
+                publish('training',0)
             for block in range(start,cfg['training_blocks']):
+                publish('training',block)
                 # Revisit each court in shuffled cycles; retain multi-day continuity inside blocks.
                 cycle = block//cfg['train_courts']
                 order = rng_for(seed,'order',cycle).permutation(cfg['train_courts'])
@@ -233,22 +249,31 @@ def run(config, output):
                 info = update_ppo(model,optimizer,samples,epochs=cfg['ppo_epochs'])
                 history.append(dict(block=block+1,court=court.id,score=float(np.mean([r['score'] for r in rows])),**info))
                 if (block+1)%cfg['validation_every']==0 or block+1==cfg['training_blocks']:
-                    validation = evaluate(model,settings,objective,cfg,'validation')
+                    publish('validation',block+1,evaluated=0,
+                            evaluation_total=cfg['evaluation_repeats']*cfg['validation_courts']*2)
+                    validation = evaluate(model,settings,objective,cfg,'validation',
+                        lambda n,total:publish('validation',block+1,evaluated=n,evaluation_total=total))
                     value = float(np.mean([p['delta'] for p in validation]))
                     history[-1]['validation_delta'] = value
+                    live_history.append(dict(block=block+1,**comparison(validation)))
                     if value>best_score:
                         best_score=value; best=copy.deepcopy(model.state_dict())
                 atomic_torch(checkpoint,dict(block=block+1,model=model.state_dict(),
                     optimizer=optimizer.state_dict(),torch_rng=torch.get_rng_state(),
-                    best_score=best_score,best=best,history=history))
+                    best_score=best_score,best=best,history=history,live_history=live_history))
                 atomic_json(job/'progress.json',dict(block=block+1,total=cfg['training_blocks'],last=history[-1]))
+                publish('training',block+1)
                 print(f'{objective.id} rep={rep} block={block+1}/{cfg["training_blocks"]}',flush=True)
             model.load_state_dict(best)
-            pairs = evaluate(model,settings,objective,cfg,'test')
+            publish('testing',cfg['training_blocks'],evaluated=0,
+                    evaluation_total=cfg['evaluation_repeats']*cfg['test_courts']*2)
+            pairs = evaluate(model,settings,objective,cfg,'test',
+                lambda n,total:publish('testing',cfg['training_blocks'],evaluated=n,evaluation_total=total))
             summary = dict(objective=asdict(objective),replica=rep,validation_delta=best_score,
                            results=summarize(pairs))
             atomic_json(job/'paired_test.json',pairs); atomic_json(job/'summary.json',summary)
             atomic_json(job/'learning_history.json',history)
+            publish('complete',cfg['training_blocks'])
             summaries.append(summary); atomic_json(output/'summary.json',summaries)
     export_csv(output, summaries)
     return summaries
