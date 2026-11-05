@@ -78,7 +78,7 @@ def period(court, settings, objective, days, namespace, visitors, model=None,
         before = len(collector.samples) if collector else 0
         row, raw = simulate(court, settings, 'neural' if model is not None else 'none',
                             day=day, namespace=namespace, visitors=visitors,
-                            raw=True, controller=collector)
+                            raw=True, controller=collector,period_day=day,period_days=days)
         component = metrics(row, raw, settings.profit_scale)
         score = objective.score(component)
         customer_score, store_score = objective.components(component)
