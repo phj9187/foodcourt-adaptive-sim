@@ -1,0 +1,15 @@
+# Optional cross-type stress design, not the default campus target/population mix.
+seed: 20261106
+venue_types: [campus, mall, highway, airport, leisure]
+train_courts: 40
+validation_courts: 20
+test_courts: 20
+lhs_samples: 8
+powers: [1.0]
+replicas: 3
+training_blocks: 80
+period_days: 14
+demand_mode: capacity
+demand_scale: 1.0
+evaluation_repeats: 3
+validation_every: 20
