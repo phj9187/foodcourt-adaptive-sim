@@ -1,0 +1,16 @@
+# Review pilot throughput before scaling. No application-imposed time limit.
+seed: 20261105
+lhs_samples: 24
+powers: [0.5, 1.0, 2.0]
+replicas: 3
+train_courts: 24
+validation_courts: 6
+test_courts: 12
+training_blocks: 240
+period_days: 5
+visitors: 300
+evaluation_repeats: 3
+validation_every: 24
+ppo_epochs: 4
+hidden: 48
+threads: 2
