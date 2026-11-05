@@ -2,7 +2,7 @@
 from dataclasses import dataclass, asdict, replace
 import json
 import numpy as np
-from .models import Court, Settings, generate_court, rng_for, seed_for
+from .models import Court, Settings, rng_for, seed_for
 
 
 @dataclass(frozen=True)
@@ -49,31 +49,9 @@ def lhs_objectives(n, seed):
     return result, cube.tolist()
 
 
-def make_court(settings, index, split, visitors):
-    """Sample 2..6 counters, 3..10 menus each; category diversity >=2.
-
-    Public anchors justify category/menu/price vocabulary, NOT these sampling
-    probabilities, capacities or cross-store combinations (research assumptions).
-    """
-    rng = rng_for(settings.seed, 'layout', split, index)
-    layout_settings = replace(settings,seed=seed_for(settings.seed,'menu_profiles',split)%(2**31))
-    base = generate_court(layout_settings, index, 40, visitors)
-    count = int(rng.integers(2, 7))
-    categories = list(rng.permutation(4))
-    categories += list(rng.integers(0, 4, max(0, count-4)))
-    dishes, servers, stock = [], [], []
-    for counter, category in enumerate(categories[:count]):
-        pool = [d for d in base.dishes if d.counter == category]
-        pool = [pool[j] for j in rng.permutation(len(pool))[:int(rng.integers(3, 11))]]
-        dishes.extend(replace(d, id=f'S{counter}_{d.id}', counter=counter) for d in pool)
-        servers.append(int(rng.integers(1, 4)))
-        portions = max(1, int(np.ceil(visitors/count*settings.expected_purchase_rate*settings.stock_cover)))
-        stock.append(dict(staple=portions, protein=portions, vegetable=int(np.ceil(1.2*portions))))
-    return Court(f'{split}_{index:04d}', dishes, servers, int(rng.integers(1, 4)),
-                 int(rng.integers(40, 201)), settings.duration, stock,
-                 base.ingredient_costs, dict(base.provenance, composition='synthetic constrained sampling',
-                 assumptions=['2..6 counters', '3..10 menus/counter', 'at least two categories',
-                              '1..3 cooks/counter', '1..3 kiosks', '40..200 seats']))
+def make_court(settings, index, split, visitors, design_size=None):
+    from .venues import generate_venue
+    return generate_venue(settings,index,split,visitors,design_size)
 
 
 def metrics(row, raw, profit_scale=6000.):
