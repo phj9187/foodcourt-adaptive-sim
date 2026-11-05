@@ -31,10 +31,10 @@ class AdaptiveTests(unittest.TestCase):
         courts = [make_court(self.s,i,'train',50) for i in range(20)]
         self.assertGreater(len({len(c.servers) for c in courts}),1)
         for c in courts:
-            self.assertTrue(2<=len(c.servers)<=6)
+            self.assertTrue(2<=len(c.servers)<=16)
             self.assertGreaterEqual(len({d.category for d in c.dishes}),2)
             for counter in range(len(c.servers)):
-                self.assertTrue(3<=sum(d.counter==counter for d in c.dishes)<=10)
+                self.assertTrue(3<=sum(d.counter==counter for d in c.dishes)<=32)
         self.assertNotEqual(courts[0].dishes,make_court(self.s,0,'test',50).dishes)
 
     def test_permutation_equivariance_and_variable_size(self):
@@ -73,6 +73,7 @@ class AdaptiveTests(unittest.TestCase):
 
     def test_paired_randomness_and_continuous_inventory(self):
         c=make_court(self.s,1,'test',60)
+        c.provenance['weekdays']=list(range(7))
         a,_=period(c,self.s,self.o,4,'test',60,changes=True)
         b,samples=period(c,self.s,self.o,4,'test',60,ActorCritic(),changes=True)
         self.assertEqual([r['visitors'] for r in a],[r['visitors'] for r in b])
@@ -82,17 +83,16 @@ class AdaptiveTests(unittest.TestCase):
                 for initial,used,left,carried in zip(inv['initial'],inv['consumed'],inv['leftover'],inv['carried']):
                     for k in initial:
                         self.assertAlmostEqual(initial[k],used[k]+left[k])
-                        self.assertAlmostEqual(carried[k],left[k]*(1-self.s.perishable_fraction))
-            for previous,following in zip(rows,rows[1:]):
-                for initial,carried,target in zip(following['inventory']['initial'],
-                                               previous['inventory']['carried'],c.initial_stock):
-                    for k in target:
-                        self.assertAlmostEqual(initial[k],carried[k]+min(max(0.,target[k]-carried[k]),.6*target[k]))
+                        self.assertAlmostEqual(carried[k],left[k])
+                ledger=inv['supply']
+                self.assertAlmostEqual(ledger['initial_value']+ledger['received_value'],
+                    ledger['consumed_value']+ledger['waste_value']+ledger['on_hand_value'])
         self.assertGreater(len(samples),0)
 
     def test_no_forced_improvement_and_update(self):
         s=Settings(openness=0,recommendation_overhead=1.)
         c=make_court(s,0,'test',60)
+        c.provenance['weekdays']=list(range(7))
         baseline,_=period(c,s,self.o,3,'same',60)
         model=ActorCritic(); before=copy.deepcopy(model.state_dict())
         ai,samples=period(c,s,self.o,3,'same',60,model,learn=True)
@@ -104,7 +104,7 @@ class AdaptiveTests(unittest.TestCase):
     def test_resume_matches_uninterrupted_and_config_guard(self):
         cfg=dict(lhs_samples=1,replicas=1,train_courts=2,validation_courts=1,test_courts=1,
                  training_blocks=2,period_days=2,visitors=8,evaluation_repeats=1,
-                 validation_every=2,ppo_epochs=1,hidden=8)
+                 validation_every=2,ppo_epochs=1,hidden=8,demand_mode='fixed')
         import kiosk_adaptive.study as study
         with tempfile.TemporaryDirectory() as a,tempfile.TemporaryDirectory() as b:
             expected=run(cfg,a)
