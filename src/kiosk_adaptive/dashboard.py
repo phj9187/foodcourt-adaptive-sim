@@ -41,7 +41,7 @@ def snapshot(output):
             live = read_json(path/'live.json', {})
             progress = read_json(path/'progress.json', {})
             final = read_json(path/'summary.json')
-            pairs = read_json(path/'paired_test.json', [])
+            pairs = [] if live.get('test_stable') else read_json(path/'paired_test.json', [])
             history = live.get('history', [])
             # Backward-compatible read-only viewing of old pilot outputs.
             if not history:
@@ -54,15 +54,15 @@ def snapshot(output):
                 total=cfg.get('training_blocks',0),
                 phase='complete' if final else live.get('phase','training' if progress else 'waiting'),
                 history=history, latest=latest,
-                final_stable=comparison([p for p in pairs if not p['changes']]),
-                final_changed=comparison([p for p in pairs if p['changes']]),
+                final_stable=live.get('test_stable') or comparison([p for p in pairs if not p['changes']]),
+                final_changed=live.get('test_changed') or comparison([p for p in pairs if p['changes']]),
                 evaluated=live.get('evaluated'),evaluation_total=live.get('evaluation_total'),
                 error=live.get('error')))
     return dict(experiment=root.name,config=cfg,jobs=jobs,
                 refreshed=datetime.now().astimezone().isoformat(timespec='seconds'))
 
 
-def number(value, suffix='', digits=3):
+def number(value, suffix='', digits=4):
     if value is None or not math.isfinite(value):
         return '—'
     return f'{value:+.{digits}f}{suffix}'
@@ -71,7 +71,8 @@ def number(value, suffix='', digits=3):
 def chart(points, key, title, suffix=''):
     valid = [(p['block'],p.get(key)) for p in points if p.get(key) is not None]
     if not valid:
-        return '<div class="empty">'+escape(title)+'：검증 결과 대기</div>'
+        reason='기준점수 0 이하 · 점수 차이 Δ로 확인' if points and key=='percent' else '검증 결과 대기'
+        return '<div class="empty">'+escape(title)+'：'+reason+'</div>'
     width,height,left,top=480,155,55,18
     right,bottom=465,117
     xs=[x for x,y in valid];ys=[y for x,y in valid]+[0.]
@@ -86,8 +87,8 @@ def chart(points, key, title, suffix=''):
     return f'''<svg viewBox="0 0 {width} {height}" role="img" aria-label="{escape(title)}">
     <title>{escape(title)}</title><text x="{left}" y="12">{escape(title)}</text>
     <line x1="{left}" x2="{right}" y1="{py(0):.2f}" y2="{py(0):.2f}" class="zero"/>
-    <text x="2" y="{top+8}">{number(hi,suffix,2)}</text>
-    <text x="2" y="{bottom}">{number(lo,suffix,2)}</text>
+    <text x="2" y="{top+8}">{number(hi,suffix,2 if key=='percent' else 3)}</text>
+    <text x="2" y="{bottom}">{number(lo,suffix,2 if key=='percent' else 3)}</text>
     <polyline points="{coordinates}"/><g>{dots}</g>
     <text x="{left}" y="145">0</text><text x="340" y="145">학습 운영기간 → {xmax}</text>
     </svg>'''
@@ -127,7 +128,8 @@ def render(data, refresh=False):
         latest=j['latest'] or {};delta=latest.get('delta');percent=latest.get('percent')
         color='up' if delta is not None and delta>=0 else 'down' if delta is not None else 'neutral'
         progress=100*j['block']/max(1,j['total'])
-        o=j['objective'];params=' · '.join(f'{k}={o[k]:.2f}' for k in ('taste','affordability','waiting','customer_share','profit_share','power'))
+        o=j['objective'];labels=dict(taste='취향',affordability='가격',waiting='대기',customer_share='고객 비중',profit_share='판매기여 비중',power='지수')
+        params=' · '.join(f'{labels[k]} {o[k]:.2f}' for k in labels)
         phase=phases.get(j['phase'],j['phase'])
         if j['evaluated'] is not None and j['phase'] in ('validation','testing'):
             phase+=f" {j['evaluated']}/{j['evaluation_total']}"
