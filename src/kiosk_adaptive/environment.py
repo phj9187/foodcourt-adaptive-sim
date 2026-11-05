@@ -7,7 +7,7 @@ import numpy as np
 from .models import rng_for,seed_for,softmax
 
 
-def simulate(court,settings,policy='none',theta=None,day=0,namespace='evaluation',visitors=300,attention='bounded',raw=False,controller=None):
+def simulate(court,settings,policy='none',theta=None,day=0,namespace='evaluation',visitors=300,attention='bounded',raw=False,controller=None,period_day=0,period_days=1):
  if policy not in ('none','neural'):raise ValueError('unknown policy')
  if attention not in ('bounded','full'):raise ValueError('unknown attention mode')
  s=settings;menus=court.dishes;m=len(menus)
@@ -83,7 +83,10 @@ def simulate(court,settings,policy='none',theta=None,day=0,namespace='evaluation
      float(len(kitchen_queues[c]))/20.,court.servers[c]/3.,
      *[float(d.category==v) for v in categories],
      t/court.duration,congestion,len(menus)/60.,len({d.counter for d in menus})/6.,
-     len(kiosk_queue)/20.,len(seat_queue)/100.])
+     len(kiosk_queue)/20.,len(seat_queue)/100.,
+     min(stock[c][k]/v for k,v in d.recipe.items())/300.,
+     min(court.initial_stock[c][k]/v for k,v in d.recipe.items())/300.,
+     period_day/period_days,(period_days-period_day)/period_days])
    selected=controller(np.asarray(candidates,dtype=np.float32),rng_for(day_seed,'policy',i))
    if type(selected) is not int or not 0<=selected<len(options):raise ValueError('invalid neural action')
    suggestions=[options[selected]]
