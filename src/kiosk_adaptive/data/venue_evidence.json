@@ -1,0 +1,51 @@
+{
+  "checked_at": "2026-11-05",
+  "scope": "Purposive primary-source case catalogue, NOT a representative census. Historical announcements are archetypes, not current venue measurements.",
+  "sources": {
+    "inje2025": {"url":"https://cms.inje.ac.kr/bme/community/notice.do?article.offset=0&articleLimit=10&articleNo=71683&mode=view","date":"2025-05-14","verification":"official indexed notice; direct fetch returned 502","facts":"5 outlets across TWO FLOORS: floor1 two outlets/128 seats/2 kiosks, floor2 three outlets/217 seats/3 kiosks; term weekdays 08-19; vacation 09-15","limits":"Floors must not be summed as a single shared seating zone. Buffet differs from made-to-order. Not a staffing measurement."},
+    "tuk2025": {"url":"https://www.tukorea.ac.kr/sites/contract/contents/files/2025_contract.pdf","date":"2025","verification":"official PDF text","facts":"TIP basement foodcourt five corners, 600 seats","limits":"No throughput, staffing, hours or kiosk count established."},
+    "nusdeck": {"url":"https://chs.nus.edu.sg/virtual-tour/","date":null,"verification":"official university page","facts":"The Deck: 16 stalls, 1000 seats","limits":"Stalls may include beverage vendors. No measured demand or staff."},
+    "kita2025": {"url":"https://www.mitsuifudosan.co.jp/corporate/news/2025/0423/","date":"2025-04-23","verification":"operator announcement","facts":"LaLa Terrace Kita-Ayase foodcourt: 10 outlets, approximately 500 seats","limits":"51 refers to whole complex and is excluded. Announcement, not longitudinal survey."},
+    "toyosu2020": {"url":"https://www.mitsuifudosan.co.jp/corporate/news/2020/0121/download/20200121_03.pdf","date":"2020-01-21","verification":"operator PDF p1","facts":"Foodcourt 13 outlets, approximately 900 seats","limits":"Includes drinks/dessert; historical configuration, not present-day inventory."},
+    "sajo2025": {"url":"https://ind.sajo.co.kr/promotionCenter/storyView.asp?SearchCompany=-1&SearchStatus=&board_group_idx=3&idx=2885&page=1","date":"2025-02-11","verification":"operator-parent company release, full query URL checked","facts":"Deogyusan foodcourt north/south 174/196 seats; Gochang 265/185; Korean/Western/ramen/udon categories","limits":"32/20 outlets are whole rest-stop food/retail totals, NOT foodcourt counters. Four categories do NOT establish four independent vendors."},
+    "sora2017": {"url":"https://www.anatc.com/wp-content/uploads/2017/11/News-Release-17-21.pdf","date":"2017-11","verification":"operator release indexed PDF","facts":"Changi T2 SORA: six concepts, approximately 300 seats","limits":"Historical Japanese-food-hall archetype; no claim venue remains open or operates 24h."},
+    "sora2019": {"url":"https://www.dreamnews.jp/press/0000194829/","date":"2019-05-22","verification":"ANA Trading company-issued primary release, full text","facts":"SORA T1: three outlets,120 seats,10:00-23:00","limits":"Historical landside foodhall, not current operation; same operator as T2 so not independent population sampling."},
+    "changi2026": {"url":"https://www.changiairport.com/en/corporate/our-media-hub/publications/changi-journeys/2026/changi-airport-food-court-design.html","date":"2026-10-27","verification":"airport operator article","facts":"Transit foodcourts 24/7; flight-linked arrival waves, kiosks/QR, different dietary tenant mixes","limits":"Qualitative subtype evidence only. Cannot attach 24h to SORA as an observed joint record."},
+    "kumho2024": {"url":"https://kumhoresort.co.kr/hub/download/KUMHO_RESORT.pdf","date":"2024","verification":"operator catalogue PDF text","facts":"Asan Spavis foodcourt 562 square metres, 300 seats","limits":"Lobby snack120 seats is separate and excluded; vendor count unknown."},
+    "uworld2026": {"url":"https://u-world.kr/wp-content/uploads/2026/02/260212-%ED%95%99%EB%8B%A8-%EB%A6%AC%ED%94%8C%EB%A0%9B-2.pdf","date":"2026-02","verification":"operator PDF page16, text checked","facts":"Yeosu U-World foodcourt on floor5:540 seats; Korean/Chinese/snacks/burger/pizza; kiosk ordering and group pre-orders","limits":"Cuisine list is NOT exact vendor count. Group buffet and reserved bulk orders not reproduced in this engine."},
+    "inspire2023": {"url":"https://www.newswire.co.kr/newsRead.php?no=977805","date":"2023","verification":"company-issued press release distributed on Newswire","facts":"Planned resort foodcourt approximately3500 square metres,1000 seats","limits":"Planning announcement, NOT observed current operation; retained as planned large-leisure envelope only."},
+    "sejong2026": {"url":"https://pub.sejong.ac.kr/pub/information/PGIS01_01.do?articleNo=863540&attachNo=232762&mode=download","date":"2026-1","verification":"official PDF printedp39","facts":"Four cuisine categories with interpreted menu counts20/14/11/19;3500-6500KRW","limits":"Category counts do not independently establish vendor counts, staffing or seating."},
+    "storage": {"url":"https://www.foodsafety.gov/food-safety-charts/cold-food-storage-charts","date":null,"verification":"US government chart","facts":"Home refrigeration <=4C: raw poultry/minced meat1-2days; intact fresh meat3-5days; many cooked foods3-4days","limits":"NOT Korean commercial shelf-life rules. Only motivates perishable short-life sensitivity; actual supplier labels and handling are required."},
+    "queue2005": {"url":"https://informs-sim.org/wsc05papers/331.pdf","date":"2005","verification":"Winter Simulation Conference primary case study","facts":"One campus quick-service operation separates cashier/soup/sandwich staff; tested alternative staffing","limits":"No universal workers-per-vendor ratio; supports resource separation, not numerical range."},
+    "krei2024": {"url":"https://www.mafra.go.kr/bbs/home/798/586182/download.do","date":"2024-12","verification":"government-hosted KREI primary survey PDF,3196 establishments","facts":"PDFp132:overall mean10.9 operating hours;PDFp373:general restaurants mean3.46 monthly workers, revenue-size subgroup means1.88-7.09;PDFp494:ingredient purchase frequency daily15.4%,3-4/week42.0%,1-2/week29.4%,less frequent13.2%","limits":"NOT a foodcourt sample. Monthly headcount is NOT simultaneous cooks. Purchase frequency is NOT delivery lead time. Context and frequency-category sensitivity only; no foodcourt population inference."}
+  },
+  "cases": [
+    {"id":"inje_floor1","type":"campus","source":"inje2025","vendors":2,"seats":128,"kiosks":2,"hours":11,"weekdays":[0,1,2,3,4],"scope":"one floor, observed notice"},
+    {"id":"inje_floor2","type":"campus","source":"inje2025","vendors":3,"seats":217,"kiosks":3,"hours":11,"weekdays":[0,1,2,3,4],"scope":"one floor, observed notice"},
+    {"id":"tuk_tip","type":"campus","source":"tuk2025","vendors":5,"seats":600,"scope":"one basement zone"},
+    {"id":"nus_deck","type":"campus","source":"nusdeck","vendors":16,"seats":1000,"scope":"one canteen, beverage mix not reconstructed"},
+    {"id":"kita","type":"mall","source":"kita2025","vendors":10,"seats":500,"scope":"one foodcourt"},
+    {"id":"toyosu","type":"mall","source":"toyosu2020","vendors":13,"seats":900,"scope":"historical one foodcourt including drinks/desserts"},
+    {"id":"deogyu_n","type":"highway","source":"sajo2025","seats":174,"scope":"one direction, vendor count UNKNOWN"},
+    {"id":"deogyu_s","type":"highway","source":"sajo2025","seats":196,"scope":"one direction, vendor count UNKNOWN"},
+    {"id":"gochang_n","type":"highway","source":"sajo2025","seats":265,"scope":"one direction, vendor count UNKNOWN"},
+    {"id":"gochang_s","type":"highway","source":"sajo2025","seats":185,"scope":"one direction, vendor count UNKNOWN"},
+    {"id":"sora","type":"airport","source":"sora2017","vendors":6,"seats":300,"scope":"historical landside foodhall; hours UNKNOWN"},
+    {"id":"sora_t1","type":"airport","source":"sora2019","vendors":3,"seats":120,"hours":13,"opening_minute":600,"scope":"historical landside foodhall, observed opening10-23"},
+    {"id":"spavis","type":"leisure","source":"kumho2024","seats":300,"scope":"one foodcourt; vendors UNKNOWN"},
+    {"id":"uworld","type":"leisure","source":"uworld2026","seats":540,"scope":"one foodcourt; vendors UNKNOWN"},
+    {"id":"inspire_plan","type":"leisure","source":"inspire2023","seats":1000,"planned":true,"scope":"excluded from default generation: planned envelope, NOT measured operation"}
+  ],
+  "assumed_ranges": {
+    "workers_per_vendor":[1,4], "menus_per_vendor":[4,20], "cook_minutes":[1.5,8.0],
+    "staff_load":[0.25,1.15], "order_minutes":[0.25,1.25], "kiosk_load":[0.35,1.10],
+    "dining_minutes":[12.0,40.0], "stock_cover_days":[0.8,2.5], "lead_days":[1,3],
+    "review_days":[1,7], "safety_days":[0.0,1.0], "protein_life_days":[1,5],
+    "staple_life_days":[3,10], "vegetable_life_days":[1,5], "menu_imbalance":[0.0,1.0],
+    "price_multiplier":[0.8,1.8], "cost_fraction":[0.20,0.55], "repeat_share":[0.05,0.80],
+    "memory_strength":[0.0,0.8], "openness":[0.15,0.85], "attention_limit":[3,16],
+    "taste_noise":[0.1,0.45], "patience_minutes":[5.0,25.0], "demand_cv":[0.05,0.35],
+    "weekday_factor":[0.8,1.8], "peak_fraction":[0.35,0.80], "delivery_delay_probability":[0.0,0.15]
+  },
+  "range_status":"All assumed_ranges are EXPLICIT ENGINEERING SENSITIVITY ENVELOPES, not empirically validated ranges. Model-only scaffold counts and ingredient types are not measurements. No foreign prices are converted into Korean prices. Case-paired vendors/seats are the only observed structural anchors, with missing fields separately marked."
+}
