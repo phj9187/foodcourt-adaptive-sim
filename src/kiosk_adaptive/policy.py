@@ -4,7 +4,7 @@ import torch
 from torch import nn
 from torch.distributions import Categorical
 
-FEATURES = 31
+FEATURES = 47
 
 
 class ActorCritic(nn.Module):
