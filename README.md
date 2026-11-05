@@ -1,5 +1,7 @@
 # 가변 푸드코트 추천 시뮬레이션
 
+[Colab에서 열기](https://colab.research.google.com/github/phj9187/foodcourt-adaptive-sim/blob/ad481f13d9acd9d5aa2e0157434fbcbb9314f962/notebooks/foodcourt_adaptive_colab.ipynb) · [실행 검증 기록](docs/validation_20261105.md)
+
 기존 `koisk-simulation`과 별개의 독립 프로젝트입니다. 기존 실행 코드·실험 결과를 불러오지 않습니다. 공개 대학 메뉴 자료의 이름·가격·구성 근거만 출처와 함께 복사해 사용했습니다.
 
 목표는 **평가함수를 지금 하나로 결정하는 것**이 아니라, 여러 평가함수로 각각 학습한 AI가 **그 함수의 기준에서 AI 미개입보다 얼마나 개선하는지** 파악하는 것입니다. 실제 주관적 만족도와의 관계는 향후 사람의 반응으로 검증해야 합니다.
