@@ -38,3 +38,9 @@
 - 기말 재고·배송 중 물량 가치를 기록하되 미래 판매나 기간 밖 폐기 위험을 완전히 평가하지 못함.
 
 상세 원장: src/kiosk_adaptive/data/venue_evidence.json. 학습 설정: config/adaptive_pilot.yaml, config/adaptive_colab.yaml, config/adaptive_multitype.yaml.
+
+## 게시 버전
+
+실험 소스 커밋: 3b52a7606e1de4328df70802435512909a25ad3b.
+Colab 노트북 커밋: 97084f85f9b864dd5fd14baf5f7015c12400918a.
+새 실험 ID: research_venue_pilot_20261106_001. 기존 체크포인트를 새 생성기에서 이어 쓰지 않습니다.
