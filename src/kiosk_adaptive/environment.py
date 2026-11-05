@@ -4,7 +4,7 @@ No learner is updated with future completion or taste while processing arrivals.
 from collections import deque
 import heapq,math
 import numpy as np
-from .models import rng_for,seed_for,softmax
+from .models import rng_for,seed_for,softmax,CATEGORIES
 
 
 def simulate(court,settings,policy='none',theta=None,day=0,namespace='evaluation',visitors=300,attention='bounded',raw=False,controller=None,period_day=0,period_days=1):
@@ -19,17 +19,26 @@ def simulate(court,settings,policy='none',theta=None,day=0,namespace='evaluation
  ps=rng_for(day_seed,'price_sensitivity').uniform(.3,1.1,n);ws=rng_for(day_seed,'wait_sensitivity').uniform(.3,1.1,n)
  allergy=rng_for(day_seed,'allergy').random(n)<.05
  dislikes=rng_for(day_seed,'dislikes').random(n)<.10
- disliked_category=rng_for(day_seed,'disliked_category').integers(0,4,n)
- categories=('분식','중식','일식','양식')
+ disliked_category=rng_for(day_seed,'disliked_category').integers(0,len(CATEGORIES),n)
+ categories=CATEGORIES
  # Explicit ordinal kiosk inputs; hidden taste/noise remains private to the environment.
  taste_input=np.round(tastes*4)/4
  price_input=np.round(np.clip((ps-.3)/.8,0,1)*4)/4
  wait_input=np.round(np.clip((ws-.3)/.8,0,1)*4)/4
  patience=rng_for(day_seed,'patience').exponential(s.patience_minutes,n)/np.maximum(.2,ws)
- class_gap=rng_for(day_seed,'class_gap').uniform(20.,60.,n)
- # Two synthetic class-release peaks. These are not measured campus footfall.
- peaks=np.where(rng_for(day_seed,'peak').random(n)<.65,.36,.62)*court.duration
- arrivals=np.clip(peaks+rng_for(day_seed,'arrival_jitter').normal(0,court.duration*.13,n),0,np.nextafter(court.duration,0))
+ class_gap=rng_for(day_seed,'class_gap').uniform(20.,60.,n) if s.venue_type=='campus' else rng_for(day_seed,'class_gap').uniform(45.,180.,n)
+ # Type-specific synthetic peak/background mixture, not observed schedules.
+ opening=court.provenance.get('opening_minute',480)
+ if s.venue_type=='campus':clock_peaks=[690.,750.,1050.]
+ elif s.venue_type in ('mall','leisure'):clock_peaks=[750.,1110.]
+ else:clock_peaks=[opening+court.duration*v for v in (.2,.45,.7,.9)]
+ locations=[x-opening for x in clock_peaks if 0<=x-opening<court.duration]
+ if not locations:locations=[court.duration*.5]
+ peaks=rng_for(day_seed,'peak_locations').choice(locations,n)
+ concentrated=rng_for(day_seed,'peak').random(n)<s.peak_fraction
+ arrivals=np.where(concentrated,peaks+rng_for(day_seed,'arrival_jitter').normal(0,court.duration*.06,n),
+                   rng_for(day_seed,'arrival_background').uniform(0,court.duration,n))
+ arrivals=np.clip(arrivals,0,np.nextafter(court.duration,0))
  fit=np.clip(1.-np.abs(tastes[:,None,:]-np.array([x.taste for x in menus])[None,:,:]).mean(axis=2),0,1)
  estimated=np.clip(fit+np.column_stack([rng_for(day_seed,'taste_noise',d.id).normal(0,s.taste_noise,n) for d in menus]),0,1) if n else fit.copy()
  shocks=np.column_stack([rng_for(day_seed,'choice',d.id).gumbel(0,s.choice_noise,n) for d in menus]) if n else fit.copy()
@@ -86,7 +95,11 @@ def simulate(court,settings,policy='none',theta=None,day=0,namespace='evaluation
      len(kiosk_queue)/20.,len(seat_queue)/100.,
      min(stock[c][k]/v for k,v in d.recipe.items())/300.,
      min(court.initial_stock[c][k]/v for k,v in d.recipe.items())/300.,
-     period_day/period_days,(period_days-period_day)/period_days])
+     period_day/period_days,(period_days-period_day)/period_days,
+     court.duration/1440.,court.provenance.get('opening_minute',480)/1440.,court.seats/1000.,court.kiosks/20.,
+     *[float(s.venue_type==kind) for kind in ('campus','mall','highway','airport','leisure')],
+     *court.provenance.get('supply_observations',[[0.,0.,0.] for _ in court.servers])[c],
+     court.provenance.get('weekday',0)/6.,court.provenance.get('days_to_next_service',1)/7.])
    selected=controller(np.asarray(candidates,dtype=np.float32),rng_for(day_seed,'policy',i))
    if type(selected) is not int or not 0<=selected<len(options):raise ValueError('invalid neural action')
    suggestions=[options[selected]]
@@ -121,7 +134,7 @@ def simulate(court,settings,policy='none',theta=None,day=0,namespace='evaluation
  def seated(i,t,seat=None):
   r=records[i];j=r['chosen'];r.update(status='served',served=True,seat_time=t,seat_wait=t-r['food_ready'],total_wait=t-r['arrival'],taste=float(fit[i,j]),affordability=float(max(0.,1.-prices[j]/budgets[i])),wait_utility=s.wait_scale/(s.wait_scale+t-r['arrival']))
   r['missed_class']=bool(t>r['arrival']+class_gap[i]);log(t,'served',i,counter=r['counter'])
-  if seat is not None:schedule(t+float(rng_for(day_seed,'dining',i).uniform(12.,25.)),'seat_release',i,seat)
+  if seat is not None:schedule(t+float(rng_for(day_seed,'dining',i).uniform(.8*s.dining_minutes,1.2*s.dining_minutes)),'seat_release',i,seat)
  def dispatch_seats(t):
   while free_seats and seat_queue:seated(seat_queue.popleft(),t,heapq.heappop(free_seats))
  for i,arrival in enumerate(arrivals):schedule(arrival,'arrival',i)
@@ -157,8 +170,8 @@ def simulate(court,settings,policy='none',theta=None,day=0,namespace='evaluation
  served=[r for r in records if r['served']];den=max(1,n);count=len(served)
  avg=lambda key:sum(r[key] for r in served)/max(1,count)
  revenue=sum(r['revenue'] for r in records);food_cost=sum(r['food_cost'] for r in records)
- leftover_cost=sum(q*court.ingredient_costs[k] for x in stock for k,q in x.items())
- waste_cost=s.perishable_fraction*leftover_cost;profit=revenue-food_cost-waste_cost
+ # Calendar expiry is accounted by Inventory in the multi-day driver.
+ waste_cost=0.;profit=revenue-food_cost
  result=dict(visitors=n,served=count,served_fraction=count/den,taste_per_buyer=avg('taste'),mean_total_wait=avg('total_wait'),mean_kiosk_wait=avg('kiosk_wait'),mean_decision_time=avg('decision'),mean_cook_wait=avg('cook_wait'),mean_cook_minutes=avg('cook_minutes'),mean_seat_wait=avg('seat_wait'),mean_inspected=sum(r['inspected'] for r in records)/den,revenue=revenue,food_cost=food_cost,waste_cost=waste_cost,contribution_profit=profit,profit_per_visitor=profit/den,store=profit/(den*s.profit_scale),kiosk_busy_minutes=kiosk_busy,kiosk_utilization=kiosk_busy/(court.kiosks*court.duration),overtime_minutes=max(0.,max((r['food_ready'] for r in served),default=court.duration)-court.duration),accepted_recommendations=sum(r['accepted'] for r in records),missed_class=sum(r.get('missed_class',False) for r in served),active_menus=m,menu_count=m)
  for status in sorted(terminal):result['count_'+status]=sum(r['status']==status for r in records)
  for name,mask in [('low_budget',budgets<(s.budget_low+s.budget_high)/2),('high_wait_sensitivity',ws>.7)]:
