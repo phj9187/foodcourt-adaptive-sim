@@ -1,0 +1,15 @@
+seed: 20261105
+lhs_samples: 2
+powers: [1.0]
+replicas: 1
+train_courts: 3
+validation_courts: 2
+test_courts: 3
+training_blocks: 6
+period_days: 3
+visitors: 35
+evaluation_repeats: 2
+validation_every: 3
+ppo_epochs: 2
+hidden: 32
+threads: 1
