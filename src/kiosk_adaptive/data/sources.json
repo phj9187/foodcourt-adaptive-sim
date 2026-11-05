@@ -1,0 +1,92 @@
+{
+  "checked_at": "2026-11-03",
+  "scope": "official-source informed synthetic composite, not a digital twin or current menu directory",
+  "sources": [
+    {
+      "id": "yonsei_2026",
+      "university": "연세대학교",
+      "date": "2026-03-17",
+      "url": "https://news.yonsei.ac.kr/kr/news/detail?bbCategory=sc&bbSeq=35683",
+      "verified": "full_page",
+      "facts": [
+        "부를샘 중식 코너, 고를샘 다중 브랜드, 청경관 한식/면/분식",
+        "17개 메뉴명과 공개 가격 또는 가격 범위 확인"
+      ],
+      "role": "menu names/prices/categories; these restaurants are not one observed food court"
+    },
+    {
+      "id": "sejong_2026",
+      "university": "세종대학교",
+      "date": "2026-1학기",
+      "url": "https://pub.sejong.ac.kr/pub/information/PGIS01_01.do?articleNo=863540&attachNo=232762&mode=download",
+      "verified": "pdf_text_page_39",
+      "facts": [
+        "학생회관 B1 푸드코트, 분식/양식/중식/일식",
+        "야채김밥 외19, 오믈렛 외13, 짜장면 외10, 돈까스 외18: 합계64종으로 해석",
+        "안내 가격 3500~6500원, 평일09~19시, 토10:30~14시, 일/공휴일 휴무"
+      ],
+      "role": "four-counter category archetype and historical menu-scale/price/hour anchors; not all menu names available"
+    },
+    {
+      "id": "hanyang_erica",
+      "university": "한양대학교 ERICA",
+      "date": null,
+      "url": "https://global.hanyang.ac.kr/s3/s3_7_1.php",
+      "verified": "full_page",
+      "facts": [
+        "푸드코트11~14시,6500~9000원",
+        "학생식당11:30~13:30,4000원"
+      ],
+      "role": "lunch window/price-band contrast; location differs from another official facilities page, so floor not used"
+    },
+    {
+      "id": "yonsei_mirae",
+      "university": "연세대학교 미래캠퍼스",
+      "date": "2025-02-26",
+      "url": "https://ycms.yonsei.ac.kr/wsw/welfare/store02.do",
+      "verified": "full_page",
+      "facts": [
+        "학생회관 푸드코트 학기중 평일10:30~18시",
+        "학기/계절학기/방학 운영시간 차이"
+      ],
+      "role": "calendar variation; not current transaction data"
+    },
+    {
+      "id": "scnu_2022",
+      "university": "국립순천대학교",
+      "date": "2022-03-16",
+      "url": "https://www.scnu.ac.kr/press/na/ntt/selectNttInfo.do?nttSn=281108131",
+      "verified": "full_page_historical",
+      "facts": [
+        "키오스크2대에서 메뉴 선택/결제/식권 발권",
+        "치즈돈가스,닭갈비덮밥,라면 언급",
+        "당시 조리종사원7명,중식11:30~13:30; 사전 조리와 배식 준비"
+      ],
+      "role": "historical workflow and menu anchors; staffing is not a per-counter current measurement"
+    },
+    {
+      "id": "khu_2026",
+      "university": "경희대학교",
+      "date": "2026-02",
+      "url": "https://gsp.khu.ac.kr/upload/contents/202603/202603120235367360.pdf",
+      "verified": "pdf_text",
+      "facts": [
+        "학생회관 It'sMe앱 또는 식당 앞 키오스크",
+        "우정원 식당 앞 키오스크에서 푸드코트 메뉴 선택"
+      ],
+      "role": "ticketing workflow; app channel not modeled in v1"
+    },
+    {
+      "id": "colab_faq",
+      "university": null,
+      "date": null,
+      "url": "https://research.google.com/colaboratory/faq.html",
+      "verified": "full_page",
+      "facts": [
+        "유료 플랜도 자원은 무제한/항상 보장되지 않음",
+        "GPU 런타임을 선택해도 코드가 GPU를 자동 이용하지 않음"
+      ],
+      "role": "runtime/checkpoint design"
+    }
+  ]
+}
