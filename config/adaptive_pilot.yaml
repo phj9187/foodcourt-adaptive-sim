@@ -6,8 +6,11 @@ train_courts: 3
 validation_courts: 2
 test_courts: 3
 training_blocks: 6
-period_days: 3
+period_days: 7
 visitors: 35
+venue_types: [campus]
+demand_mode: capacity
+demand_scale: 0.03
 evaluation_repeats: 2
 validation_every: 3
 ppo_epochs: 2
