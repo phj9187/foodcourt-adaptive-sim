@@ -273,7 +273,9 @@ def run(config, output):
                            results=summarize(pairs))
             atomic_json(job/'paired_test.json',pairs); atomic_json(job/'summary.json',summary)
             atomic_json(job/'learning_history.json',history)
-            publish('complete',cfg['training_blocks'])
+            publish('complete',cfg['training_blocks'],
+                    test_stable=comparison([p for p in pairs if not p['changes']]),
+                    test_changed=comparison([p for p in pairs if p['changes']]))
             summaries.append(summary); atomic_json(output/'summary.json',summaries)
     export_csv(output, summaries)
     return summaries
