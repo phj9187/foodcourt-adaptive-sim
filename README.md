@@ -1,6 +1,6 @@
 # 가변 푸드코트 추천 시뮬레이션
 
-[Colab에서 열기](https://colab.research.google.com/github/phj9187/foodcourt-adaptive-sim/blob/d269cef39686764f0e85efcb2632e3f551cb3551/notebooks/foodcourt_adaptive_colab.ipynb)
+[Colab에서 열기](https://colab.research.google.com/github/phj9187/foodcourt-adaptive-sim/blob/97084f85f9b864dd5fd14baf5f7015c12400918a/notebooks/foodcourt_adaptive_colab.ipynb)
 
 기존 CEM과 별개인 PPO Actor–Critic 프로젝트입니다. **평가함수마다 공통 AI 하나를 여러 푸드코트에서 학습하고, 같은 평가함수로 AI 개입·미개입의 차이를 측정**합니다. 실제 만족도와 평가함수의 일치는 향후 사람의 반응으로 검증합니다.
 
