@@ -28,6 +28,8 @@ def simulate(court,settings,policy='none',theta=None,day=0,namespace='evaluation
  taste_input=np.asarray([c['taste_input'] for c in customers]).reshape(n,3)
  price_input=np.array([c['price_input'] for c in customers]);wait_input=np.array([c['wait_input'] for c in customers])
  patience=np.array([c['patience'] for c in customers]);class_gap=np.array([c['class_gap'] for c in customers])
+ # Observation-side inputs: what a kiosk could actually be told by the customer.
+ budget_input=np.array([c['budget_input'] for c in customers]);hurry_input=np.array([c['hurry_input'] for c in customers])
  # Type-specific synthetic peak/background mixture, not observed schedules.
  opening=court.provenance.get('opening_minute',480)
  if s.venue_type=='campus':clock_peaks=[690.,750.,1050.]
@@ -50,6 +52,8 @@ def simulate(court,settings,policy='none',theta=None,day=0,namespace='evaluation
  accept=rng_for(day_seed,'accept').random(n);outside=rng_for(day_seed,'outside').gumbel(0,s.choice_noise,n)
  cancel_draw=rng_for(day_seed,'cancel').random(n)
  stock=[dict(x) for x in court.initial_stock];consumed=[{k:0 for k in x} for x in stock]
+ # Censored demand: recipe units customers wanted but could not buy because of stock.
+ lost=[{k:0. for k in x} for x in stock];stock_blocked=0
  events=[];seq=0;trace=[]
  records=[dict(person=i,arrival=float(arrivals[i]),status='not_arrived',served=False,accepted=False,inspected=0,decision=0.,kiosk_wait=0.,cook_wait=0.,cook_minutes=0.,seat_wait=0.,total_wait=0.,taste=0.,affordability=0.,wait_utility=0.,revenue=0.,food_cost=0.,counter=None,menu=None) for i in range(n)]
  for i,r in enumerate(records):
@@ -76,6 +80,13 @@ def simulate(court,settings,policy='none',theta=None,day=0,namespace='evaluation
   r=records[i];r['status']='browsing';r['kiosk_wait']=t-r['arrival'];r['decision_start']=t;r['kiosk']=kiosk
   options=available(i,t)
   if not options:
+   nonlocal stock_blocked
+   unconstrained=[j for j,d in enumerate(menus) if t<court.duration and d.price<=budgets[i] and not(allergy[i] and 'wheat' in d.allergens) and not(dislikes[i] and d.category==categories[disliked_category[i]])]
+   if unconstrained:
+    # Only stock prevented a purchase: record the best-looking dish as unmet demand.
+    stock_blocked+=1;r['stock_blocked']=True
+    want=max(unconstrained,key=lambda j:customers[i]['taste_weight']*estimated[i,j]-ps[i]*prices[j]/budgets[i])
+    for k,v in menus[want].recipe.items():lost[menus[want].counter][k]+=v
    r['status']='no_feasible_menu';heapq.heappush(free_kiosks,kiosk);log(t,'no_feasible_menu',i);return
   considered=sorted(options,key=lambda j:priority[i,j])
   if attention=='bounded':considered=considered[:s.attention_limit]
@@ -88,7 +99,9 @@ def simulate(court,settings,policy='none',theta=None,day=0,namespace='evaluation
    if controller is None:raise ValueError('neural policy requires controller')
    # Permutation-equivariant candidates, no menu-ID embedding or future outcomes.
    congestion=sum(sum(v) for v in busy)/sum(court.servers)
-   user=[*taste_input[i],budgets[i]/11000.,price_input[i],wait_input[i],max(0.,class_gap[i]-(t-r['arrival']))/60.]
+   # Entered budget ceiling and self-reported hurry only; the hidden class gap
+   # and exact wallet stay private to the customer model.
+   user=[*taste_input[i],budget_input[i]/11000.,price_input[i],wait_input[i],hurry_input[i]]
    candidates=[]
    for j in options:
     d=menus[j];c=d.counter
@@ -108,6 +121,7 @@ def simulate(court,settings,policy='none',theta=None,day=0,namespace='evaluation
      court.provenance.get('weekday',0)/6.,court.provenance.get('days_to_next_service',1)/7.,
      d.popularity/(1+d.popularity),1/(1+j)])
    selected=controller(np.asarray(candidates,dtype=np.float32),rng_for(day_seed,'policy',i))
+   if getattr(controller,'samples',None):controller.samples[-1]['person']=i
    if type(selected) is not int or not 0<=selected<len(options):raise ValueError('invalid neural action')
    suggestions=[options[selected]]
   elif policy=='random':suggestions=[int(rng_for(day_seed,'random_card',i).choice(options))]
@@ -170,7 +184,9 @@ def simulate(court,settings,policy='none',theta=None,day=0,namespace='evaluation
    kiosk_busy+=r['decision'];heapq.heappush(free_kiosks,payload);log(t,'decision_end',i,kiosk=payload)
    if r['reason']!='order':r['status']=r['reason']
    elif t>=court.duration:r['status']='closed_after_decision'
-   elif r['chosen'] not in available(i,t):r['status']='sold_out_during_choice'
+   elif r['chosen'] not in available(i,t):
+    r['status']='sold_out_during_choice';d=menus[r['chosen']]
+    for k,v in d.recipe.items():lost[d.counter][k]+=v
    else:
     j=r['chosen'];d=menus[j]
     for k,v in d.recipe.items():stock[d.counter][k]-=v;consumed[d.counter][k]+=v
@@ -220,6 +236,7 @@ def simulate(court,settings,policy='none',theta=None,day=0,namespace='evaluation
    recommendation_exposures=sum(r.get('recommendation_exposed',False) for r in records),
    wait_p90=float(np.quantile([r['total_wait'] for r in served],.9)) if served else 0.,
    wait_p95=float(np.quantile([r['total_wait'] for r in served],.95)) if served else 0.)
+ result['stock_blocked']=stock_blocked+result['count_sold_out_during_choice']
  result['choice_world_counts']={w:sum(c['choice_world']==w for c in customers) for w in ('mixed_logit','satisficing','lexicographic')}
  for i,r in enumerate(records):
   if customers[i]['repeat'] and customers[i]['visits']:
@@ -228,4 +245,4 @@ def simulate(court,settings,policy='none',theta=None,day=0,namespace='evaluation
    experience=float(weights@np.array([r['taste'],r['affordability'],r['wait_utility']])/weights.sum()) if r['served'] else 0.
    category=menus[r['chosen']].category if r['served'] else None
    memory.observe(customers[i]['id'],experience,category,s.memory_strength)
- return result,dict(records=records,trace=trace,initial_stock=court.initial_stock,consumed=consumed,leftover=stock) if raw else None
+ return result,dict(records=records,trace=trace,initial_stock=court.initial_stock,consumed=consumed,leftover=stock,lost=lost) if raw else None

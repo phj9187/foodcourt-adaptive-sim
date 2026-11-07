@@ -55,11 +55,24 @@ def generate_customers(settings, court, day, namespace, count, expected, memory)
         measured=np.clip(tastes+input_noise.normal(0,s.input_noise,3),0,1)
         ordered_worlds=[s.behaviour_world]+[w for w in WORLDS if w!=s.behaviour_world]
         choice_world=str(profile.choice(ordered_worlds,p=[s.dominant_choice_share,(1-s.dominant_choice_share)/2,(1-s.dominant_choice_share)/2]))
+        # Kiosk-enterable inputs only. A separate stream keeps all earlier
+        # behavioural draws unchanged. Budget is entered as a whole-1000 KRW
+        # ceiling; hurry is a noisy 5-level self-report, never the hidden gap.
+        extra=rng_for(s.seed,court.id,namespace,day,cid,'kiosk_inputs')
+        hurry=float(np.clip(1/(1+np.exp(-urgency))+extra.normal(0,s.input_noise),0,1))
+        taste_input=np.round(measured*4)/4
+        price_input=round(float(np.clip((ps-.1)/1.3,0,1))*4)/4
+        wait_input=round(float(np.clip((ws-.1)/1.3,0,1))*4)/4
+        hurry_input=round(hurry*4)/4
+        missing=bool(extra.random()<s.input_missing_probability)
+        if missing:
+            # Skipped preference questions: neutral values, hard constraints still apply.
+            taste_input=np.full(3,.5);price_input=wait_input=hurry_input=.5
         result.append(dict(id=cid,repeat=bool(repeat[i]),visits=bool(visit_uniform[i]<visit_probability),
             choice_world=choice_world,
-            budget=float(budget),ps=ps,ws=ws,tastes=tastes,taste_input=np.round(measured*4)/4,
-            price_input=round(float(np.clip((ps-.1)/1.3,0,1))*4)/4,
-            wait_input=round(float(np.clip((ws-.1)/1.3,0,1))*4)/4,
+            budget=float(budget),ps=ps,ws=ws,tastes=tastes,taste_input=taste_input,
+            price_input=price_input,wait_input=wait_input,hurry_input=hurry_input,
+            budget_input=float(np.floor(budget/1000.)*1000.),inputs_missing=missing,
             patience=patience,class_gap=gap,taste_weight=taste_weight,
             allergy=bool(profile.random()<.05),dislikes=bool(profile.random()<.1),
             excluded=int(profile.integers(len(CATEGORIES))),habit=habit))
