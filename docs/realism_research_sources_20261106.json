@@ -1,0 +1,109 @@
+{
+  "scope": "최종 현실성 연구의 출처와 적용 한계. 구현 완료를 뜻하지 않음.",
+  "sources": [
+    {
+      "id": 1,
+      "title": "Sargent (2004)",
+      "url": "https://www.informs-sim.org/wsc04papers/004.pdf",
+      "verification_level": "full_text",
+      "supports": "개념·구현·운영·자료 타당성 구분",
+      "limits": "코드 테스트 통과만으로 현실 타당성이 입증되지는 않음"
+    },
+    {
+      "id": 2,
+      "title": "Monks et al., STRESS (2018)",
+      "url": "https://wrap.warwick.ac.uk/id/eprint/100103/",
+      "verification_level": "metadata_and_indexed_excerpts",
+      "supports": "시뮬레이션의 자료·가정·실험·구현 보고",
+      "limits": "전문 전체를 열람한 것으로 간주하지 않음"
+    },
+    {
+      "id": 3,
+      "title": "Train, Mixed Logit (2009)",
+      "url": "https://eml.berkeley.edu/books/choice2nd/Ch06_p134-150.pdf",
+      "verification_level": "full_text",
+      "supports": "개인 간 선호 이질성과 반복 선택의 상관",
+      "limits": "실제 계수 추정에는 선택 자료가 필요함"
+    },
+    {
+      "id": 4,
+      "title": "Abaluck and Adams-Prassl (2021)",
+      "url": "https://academic.oup.com/qje/article/136/3/1611/6169736",
+      "verification_level": "abstract_and_indexed_excerpts",
+      "supports": "고려한 선택지 집합과 선호를 분리",
+      "limits": "식당에서의 효과 크기를 직접 제공하지 않음"
+    },
+    {
+      "id": 5,
+      "title": "Scheibehenne et al. (2010)",
+      "url": "https://scheibehenne.de/ScheibehenneGreifenederTodd2010.pdf",
+      "verification_level": "full_text",
+      "supports": "선택 과부하 효과의 이질성",
+      "limits": "메뉴 수 증가가 항상 만족도 감소를 뜻하지 않음"
+    },
+    {
+      "id": 6,
+      "title": "Andersson and Nelander (2021)",
+      "url": "https://doi.org/10.3390/g12010002",
+      "verification_level": "indexed_publisher_text",
+      "supports": "대학 식당 메뉴 표시 순서와 집단별 반응",
+      "limits": "해외 연구의 효과 크기를 국내 고객에게 그대로 적용하지 않음"
+    },
+    {
+      "id": 7,
+      "title": "de Vries et al. (2018)",
+      "url": "https://repub.eur.nl/pub/106497",
+      "verification_level": "full_text",
+      "supports": "대기와 이탈·식사시간·재방문의 관계",
+      "limits": "한 식당 관측 연구이며 국내 인과 계수로 전용하지 않음"
+    },
+    {
+      "id": 8,
+      "title": "Gligoric et al. (2024)",
+      "url": "https://www.microsoft.com/en-us/research/publication/food-choice-mimicry-on-a-large-university-campus/",
+      "verification_level": "institutional_abstract",
+      "supports": "대학 캠퍼스 구매에서 사회적 영향",
+      "limits": "추가 품목 선택 결과를 전체 메뉴 선택 계수로 전용하지 않음"
+    },
+    {
+      "id": 9,
+      "title": "Curin et al. (2005)",
+      "url": "https://informs-sim.org/wsc05papers/331.pdf",
+      "verification_level": "full_text",
+      "supports": "캠퍼스 음식점의 관측 기반 도착·서비스 단계 모형",
+      "limits": "짧은 관측 사례를 보편적인 분포로 간주하지 않음"
+    },
+    {
+      "id": 10,
+      "title": "Schnabel et al. (2016)",
+      "url": "https://proceedings.mlr.press/v48/schnabel16.html",
+      "verification_level": "conference_abstract",
+      "supports": "추천 노출·관측 선택 편향",
+      "limits": "실제 푸드코트에서 검증된 효과 크기는 아님"
+    },
+    {
+      "id": 11,
+      "title": "JRC uncertainty and sensitivity guide",
+      "url": "https://publications.jrc.ec.europa.eu/repository/handle/JRC122132",
+      "verification_level": "official_metadata_and_abstract",
+      "supports": "불확실성과 민감도를 구분한 분석",
+      "limits": "현장 자료를 대체하지 않음"
+    },
+    {
+      "id": 12,
+      "title": "NIST censoring handbook",
+      "url": "https://itl.nist.gov/div898/handbook/apr/section1/apr131.htm",
+      "verification_level": "official_page",
+      "supports": "검열 자료의 해석",
+      "limits": "식당 인내시간 추정에는 경쟁 사건과 선택 편향도 고려해야 함"
+    },
+    {
+      "id": 13,
+      "title": "Fickinger et al. (2026)",
+      "url": "https://proceedings.iclr.cc/paper_files/paper/2026/hash/bf8373748bfd6b8418b3917fc0fab602-Abstract-Conference.html",
+      "verification_level": "full_text",
+      "supports": "관측 자료로 시뮬레이터 불확실성을 제약하는 접근",
+      "limits": "이론적 보장이 인간 행동 모형에 자동 적용되지는 않음"
+    }
+  ]
+}

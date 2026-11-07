@@ -18,6 +18,7 @@ from .policy import ActorCritic, Collector, update_ppo
 from .dashboard import comparison
 from .inventory import Inventory
 from .venues import coverage
+from .customers import CustomerMemory,WORLDS
 
 
 def atomic_json(path, value):
@@ -41,24 +42,25 @@ def atomic_torch(path, value):
 
 
 def period(court, settings, objective, days, namespace, visitors, model=None,
-           learn=False, changes=False):
+           learn=False, changes=False, policy=None):
     """Calendar-day service blocks with FEFO stock and lagged procurement.
 
-    Each day's queues close after service, no overnight customer queues. No
-    repeat-customer satisfaction/return behaviour is claimed. Menu changes are
+    Each day's queues close after service, no overnight customer queues. A
+    repeat-customer experience is carried inside a block only. Menu changes are
     scheduled exogenously and identically in both arms.
     """
     court = copy.deepcopy(court)
     params=court.provenance.get('parameters')
     if not params:raise ValueError('research venue parameters are required')
-    median_price=float(np.median([d.price for d in court.dishes]))
     settings=replace(settings,openness=min(1.,settings.openness*params['openness']/.65),
         attention_limit=params['attention_limit'],patience_minutes=params['patience_minutes'],
         taste_noise=params['taste_noise'],demand_cv=params['demand_cv'],
         decision_base=params['order_minutes']*.6,payment_minutes=params['order_minutes']*.4,
         dining_minutes=params['dining_minutes'],peak_fraction=params['peak_fraction'],
-        venue_type=court.provenance['venue_type'],budget_low=.8*median_price,budget_high=1.6*median_price)
+        venue_type=court.provenance['venue_type'],repeat_share=params['repeat_share'],
+        memory_strength=params['memory_strength'])
     inventory=Inventory(court,settings.seed,namespace)
+    memory=CustomerMemory()
     expected_visitors=court.provenance['expected_visitors'] if visitors is None else visitors
     original = list(court.dishes)
     held_out = [d for d in original if int(d.id.rsplit('M',1)[1]) % 3 == 0]
@@ -89,9 +91,9 @@ def period(court, settings, objective, days, namespace, visitors, model=None,
         court.provenance['days_to_next_service']=next(d for d in range(1,8) if (weekday+d)%7 in court.provenance['weekdays'])
         day_visitors=expected_visitors*(params['weekday_factor'] if weekday>=5 else 1.) if opened else 0.
         before = len(collector.samples) if collector else 0
-        row, raw = simulate(court, settings, 'neural' if model is not None else 'none',
+        row, raw = simulate(court, settings, policy or ('neural' if model is not None else 'none'),
                             day=day, namespace=namespace, visitors=day_visitors,
-                            raw=True, controller=collector,period_day=day,period_days=days)
+                            raw=True, controller=collector,period_day=day,period_days=days,memory=memory)
         carried=inventory.finish_day(day,raw['consumed'],raw['initial_stock'],opened=opened)
         row['waste_cost']=waste_cost
         row['contribution_profit']=row['revenue']-row['food_cost']-waste_cost
@@ -104,9 +106,20 @@ def period(court, settings, objective, days, namespace, visitors, model=None,
                          components=component, menus=len(court.dishes),
                          active_stores=len({d.counter for d in court.dishes}),
                          behaviour=dict(openness=settings.openness,patience=settings.patience_minutes,
-                                        taste_noise=settings.taste_noise,demand_cv=settings.demand_cv),
+                                        taste_noise=settings.taste_noise,demand_cv=settings.demand_cv,
+                                        world=settings.behaviour_world,dominant_choice_share=settings.dominant_choice_share,
+                                        repeat_share=settings.repeat_share,memory_strength=settings.memory_strength),
                          decisions=(len(collector.samples)-before) if collector else 0,
                          visitors=row['visitors'], served=row['served'],
+                         potential_visitors=row['potential_visitors'],actual_visitors=row['actual_visitors'],
+                         repeat_opportunities=row['repeat_opportunities'],
+                         visit_declined=row['count_visit_declined'],queue_balk=row['count_queue_balk'],
+                         paid_cancellations=sum(row['count_'+stage] for stage in ('cancelled_waiting_kitchen','cancelled_cooking','cancelled_waiting_seat')),
+                         refunds=row['refunds'],prepared_food_loss=row['prepared_food_loss'],
+                         wait_p90=row['wait_p90'],wait_p95=row['wait_p95'],
+                         recommendation_exposures=row['recommendation_exposures'],
+                         choice_world_counts=row['choice_world_counts'],
+                         subgroups={name:dict(opportunities=row['visitors_'+name],served_fraction=row['service_'+name]) for name in ('low_budget','high_wait_sensitivity')},
                          served_fraction=row['served_fraction'], wait=row['mean_total_wait'],
                          revenue=row['revenue'], contribution_profit=row['contribution_profit'],
                          waste_cost=row['waste_cost'], accepted=row['accepted_recommendations'],
@@ -120,33 +133,45 @@ def period(court, settings, objective, days, namespace, visitors, model=None,
 
 
 def visitor_mean(court,config):
-    return config['visitors'] if config['demand_mode']=='fixed' else court.provenance['expected_visitors']*config['demand_scale']
+    if config['demand_mode']=='fixed':return config['visitors']
+    if config['demand_mode']=='exogenous':return config['visitors']*court.provenance['exogenous_demand_factor']*config['demand_scale']
+    return court.provenance['expected_visitors']*config['demand_scale']
 
 
 def evaluate(model, settings, objective, config, split, on_progress=None):
     paired = []
+    worlds=config.get('behaviour_worlds',list(WORLDS))
+    total=config['evaluation_repeats']*config[split+'_courts']*2*len(worlds)
     for rep in range(config['evaluation_repeats']):
         for index in range(config[split+'_courts']):
             court = make_court(settings, index, split, config['visitors'],config[split+'_courts'])
-            for changes in (False, True):
-                namespace = f'{split}_rep{rep}_changes{int(changes)}'
-                args = (court, settings, objective, config['period_days'], namespace, visitor_mean(court,config))
-                baseline, _ = period(*args, changes=changes)
-                ai, _ = period(*args, model=model, changes=changes)
-                for b,a in zip(baseline, ai):
-                    assert b['visitors']==a['visitors']
-                bscore = float(np.mean([r['score'] for r in baseline]))
-                ascore = float(np.mean([r['score'] for r in ai]))
-                paired.append(dict(court=court.id, repeat=rep, changes=changes,
-                                   baseline_score=bscore, ai_score=ascore, delta=ascore-bscore,
-                                   customer_delta=float(np.mean([a['customer_score']-b['customer_score']
-                                                               for b,a in zip(baseline,ai)])),
-                                   profit_delta=float(np.mean([a['contribution_profit']-b['contribution_profit']
-                                                             for b,a in zip(baseline,ai)])),
-                                   # Relative percentage omitted near zero and for signed scores.
-                                   baseline=baseline, ai=ai))
-                if on_progress:
-                    on_progress(len(paired),config['evaluation_repeats']*config[split+'_courts']*2)
+            for world in worlds:
+                for changes in (False, True):
+                    namespace = f'{split}_rep{rep}_changes{int(changes)}'
+                    args = (court, replace(settings,behaviour_world=world), objective, config['period_days'], namespace, visitor_mean(court,config))
+                    baseline, _ = period(*args, changes=changes)
+                    ai, _ = period(*args, model=model, changes=changes)
+                    for b,a in zip(baseline, ai):
+                        # Attendance may change with experience. Pair external
+                        # opportunities, never force equal actual return visits.
+                        assert b['potential_visitors']==a['potential_visitors']
+                    bscore = float(np.mean([r['score'] for r in baseline]))
+                    ascore = float(np.mean([r['score'] for r in ai]))
+                    controls={}
+                    if config.get('comparison_controls',True):
+                        for arm in ('random','popular'):
+                            rows,_=period(*args,changes=changes,policy=arm)
+                            value=float(np.mean([r['score'] for r in rows]))
+                            controls[arm]=dict(score=value,delta_vs_none=value-bscore,
+                                ai_minus_control=ascore-value,rows=rows)
+                    paired.append(dict(court=court.id, repeat=rep, changes=changes,behaviour_world=world,
+                                       baseline_score=bscore, ai_score=ascore, delta=ascore-bscore,
+                                       customer_delta=float(np.mean([a['customer_score']-b['customer_score']
+                                                                   for b,a in zip(baseline,ai)])),
+                                       profit_delta=float(np.mean([a['contribution_profit']-b['contribution_profit']
+                                                                 for b,a in zip(baseline,ai)])),
+                                       controls=controls,baseline=baseline, ai=ai))
+                    if on_progress:on_progress(len(paired),total)
     return paired
 
 
@@ -163,6 +188,8 @@ def summarize(pairs):
             courts=len(values), mean_delta=float(values.mean()),
             mean_customer_delta=float(np.mean([p['customer_delta'] for p in selected])),
             mean_profit_delta_won=float(np.mean([p['profit_delta'] for p in selected])),
+            mean_actual_visit_delta=float(np.mean([np.mean([a['actual_visitors']-b['actual_visitors'] for b,a in zip(p['baseline'],p['ai'])]) for p in selected])),
+            mean_served_delta=float(np.mean([np.mean([a['served']-b['served'] for b,a in zip(p['baseline'],p['ai'])]) for p in selected])),
             court_sd=float(values.std(ddof=1)) if len(values)>1 else None,
             harm_fraction=float(np.mean(values<0)),
             descriptive_95_half_width=float(1.96*values.std(ddof=1)/np.sqrt(len(values)))
@@ -176,7 +203,8 @@ DEFAULT = dict(seed=20261105, lhs_samples=8, powers=[1.0], replicas=3,
                training_blocks=48, period_days=5, visitors=150,
                evaluation_repeats=3, validation_every=12, ppo_epochs=4,
                hidden=48, learning_rate=.0003, threads=1,venue_types=['campus'],
-               demand_mode='capacity',demand_scale=1.,venue_lhs_candidates=24)
+               demand_mode='exogenous',demand_scale=1.,venue_lhs_candidates=24,
+               behaviour_worlds=list(WORLDS),comparison_controls=True)
 
 
 def run(config, output):
@@ -196,10 +224,13 @@ def run(config, output):
         raise ValueError('period_days >= 2 for change experiment')
     if not cfg['venue_types'] or len(set(cfg['venue_types']))!=len(cfg['venue_types']) or not set(cfg['venue_types'])<=set(('campus','mall','highway','airport','leisure')):
         raise ValueError('invalid venue_types')
-    if cfg['demand_mode'] not in ('capacity','fixed') or not 0<cfg['demand_scale']<=10:
+    if cfg['demand_mode'] not in ('capacity','fixed','exogenous') or not 0<cfg['demand_scale']<=10:
         raise ValueError('invalid demand mode/scale')
     if type(cfg['venue_lhs_candidates']) is not int or not 1<=cfg['venue_lhs_candidates']<=100:
         raise ValueError('venue_lhs_candidates 1..100 required')
+    if not cfg['behaviour_worlds'] or len(set(cfg['behaviour_worlds']))!=len(cfg['behaviour_worlds']) or not set(cfg['behaviour_worlds'])<=set(WORLDS):
+        raise ValueError('invalid behaviour_worlds')
+    if type(cfg['comparison_controls']) is not bool:raise ValueError('comparison_controls must be boolean')
     if any(cfg[k]<len(cfg['venue_types']) for k in ('train_courts','validation_courts','test_courts')):
         raise ValueError('each split requires at least one venue per selected type')
     torch.set_num_threads(cfg['threads'])
@@ -215,13 +246,18 @@ def run(config, output):
         Path(__file__).parent/'data'/'venue_evidence.json']
     for path in sorted(paths):
         fingerprint.update(path.name.encode()); fingerprint.update(path.read_bytes())
-    manifest = dict(schema=1, config=cfg, code_sha256=fingerprint.hexdigest(),
+    manifest = dict(schema=2, config=cfg, code_sha256=fingerprint.hexdigest(),
                     objectives=[asdict(o) for o in objectives], lhs_cube=cube,
                     versions=dict(torch=torch.__version__, numpy=np.__version__),
                     assumptions=['synthetic customer response, not measured satisfaction',
                     'five-parameter objective family; powers apply to daily visitor-average components',
                     'daily FEFO expiry and lagged procurement; service queues drain before next service, no overnight queue carry',
                     'no mandatory subgroup penalties; no forced benefit of recommendation',
+                    'heterogeneous choice laws mixed within each day; synthetic customer traits, not calibrated coefficients',
+                    'potential visit denominator includes policy-dependent nonattendance; visited and served are logged separately',
+                    'repeat profiles and experience persist within a court block, reset between blocks',
+                    'refund before cooking restores ingredients; prepared cancelled food cost is charged once in food_cost',
+                    'capacity-based demand is a synthetic load design, frozen after court creation, not measured demand',
                     'test frozen policy; local adaptation must be evaluated in a separate future protocol'])
     target = output/'manifest.json'
     if target.exists() and json.loads(target.read_text(encoding='utf-8'))!=manifest:
@@ -256,7 +292,7 @@ def run(config, output):
                             total=cfg['training_blocks'],history=live_history,**extra))
             if start==0 and not live_history:
                 publish('validation',0,evaluated=0,
-                        evaluation_total=cfg['evaluation_repeats']*cfg['validation_courts']*2)
+                        evaluation_total=cfg['evaluation_repeats']*cfg['validation_courts']*2*len(cfg['behaviour_worlds']))
                 initial=evaluate(model,settings,objective,cfg,'validation',
                                  lambda n,total:publish('validation',0,evaluated=n,evaluation_total=total))
                 live_history.append(dict(block=0,**comparison(initial)))
@@ -268,13 +304,14 @@ def run(config, output):
                 order = rng_for(seed,'order',cycle).permutation(cfg['train_courts'])
                 index = int(order[block%cfg['train_courts']])
                 court = catalog['train'][index]
-                rows, samples = period(court,settings,objective,cfg['period_days'],
+                world=cfg['behaviour_worlds'][block%len(cfg['behaviour_worlds'])]
+                rows, samples = period(court,replace(settings,behaviour_world=world),objective,cfg['period_days'],
                     f'train_rep{rep}_block{block}',visitor_mean(court,cfg),model,learn=True,changes=bool(block%2))
                 info = update_ppo(model,optimizer,samples,epochs=cfg['ppo_epochs'])
-                history.append(dict(block=block+1,court=court.id,score=float(np.mean([r['score'] for r in rows])),**info))
+                history.append(dict(block=block+1,court=court.id,behaviour_world=world,score=float(np.mean([r['score'] for r in rows])),**info))
                 if (block+1)%cfg['validation_every']==0 or block+1==cfg['training_blocks']:
                     publish('validation',block+1,evaluated=0,
-                            evaluation_total=cfg['evaluation_repeats']*cfg['validation_courts']*2)
+                            evaluation_total=cfg['evaluation_repeats']*cfg['validation_courts']*2*len(cfg['behaviour_worlds']))
                     validation = evaluate(model,settings,objective,cfg,'validation',
                         lambda n,total:publish('validation',block+1,evaluated=n,evaluation_total=total))
                     value = float(np.mean([p['delta'] for p in validation]))
@@ -290,11 +327,14 @@ def run(config, output):
                 print(f'{objective.id} rep={rep} block={block+1}/{cfg["training_blocks"]}',flush=True)
             model.load_state_dict(best)
             publish('testing',cfg['training_blocks'],evaluated=0,
-                    evaluation_total=cfg['evaluation_repeats']*cfg['test_courts']*2)
+                    evaluation_total=cfg['evaluation_repeats']*cfg['test_courts']*2*len(cfg['behaviour_worlds']))
             pairs = evaluate(model,settings,objective,cfg,'test',
                 lambda n,total:publish('testing',cfg['training_blocks'],evaluated=n,evaluation_total=total))
             summary = dict(objective=asdict(objective),replica=rep,validation_delta=best_score,
-                           results=summarize(pairs))
+                           results=summarize(pairs),
+                           by_behaviour_world={world:summarize([p for p in pairs if p['behaviour_world']==world]) for world in cfg['behaviour_worlds']},
+                           control_comparisons={arm:dict(mean_delta_vs_none=float(np.mean([p['controls'][arm]['delta_vs_none'] for p in pairs])),
+                               mean_ai_minus_control=float(np.mean([p['controls'][arm]['ai_minus_control'] for p in pairs]))) for arm in ('random','popular')} if cfg['comparison_controls'] else {})
             atomic_json(job/'paired_test.json',pairs); atomic_json(job/'summary.json',summary)
             atomic_json(job/'learning_history.json',history)
             publish('complete',cfg['training_blocks'],

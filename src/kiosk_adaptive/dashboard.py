@@ -58,6 +58,8 @@ def snapshot(output):
                 final_changed=live.get('test_changed') or comparison([p for p in pairs if p['changes']]),
                 evaluated=live.get('evaluated'),evaluation_total=live.get('evaluation_total'),
                 error=live.get('error')))
+            jobs[-1]['control_comparisons']=(final or {}).get('control_comparisons',{})
+            jobs[-1]['by_behaviour_world']=(final or {}).get('by_behaviour_world',{})
     return dict(experiment=root.name,config=cfg,jobs=jobs,
                 refreshed=datetime.now().astimezone().isoformat(timespec='seconds'))
 
@@ -120,8 +122,8 @@ def render(data, refresh=False):
     <div class="equation">F = λ × (aT<sup>p</sup> + bP<sup>p</sup> + cW<sup>p</sup>)<br>
     ＋ (1 − λ) × [q × (R − K) / (N × 6,000) − (1 − q) × D / (N × 6,000)]</div>
     <div class="legend"><b>고객점수:</b> T = 취향 적합도, P = 가격 만족도, W = 대기 만족도.
-    세 값은 미구매자를 0으로 포함한 하루 방문자 평균이고, 지수 p는 평균을 구한 뒤 적용해요.<br>
-    <b>가게 성과:</b> R = 매출, K = 판매분 식재료비, D = 폐기비용(모두 원), N = 하루 방문자 수(최소 1).
+    세 값은 미구매·방문 포기를 0으로 포함한 하루 잠재 방문 기회 평균이고, 지수 p는 평균을 구한 뒤 적용해요.<br>
+    <b>가게 성과:</b> R = 환불 차감 매출, K = 사용 식재료비(조리 후 취소분 포함), D = 재고 만료 폐기비용(모두 원), N = 하루 잠재 방문 기회 수(최소 1).
     가게 성과는 방문자당 6,000원으로 나누어 크기를 맞춰요.<br>
     <b>각 카드의 계수:</b> a = 취향, b = 가격, c = 대기(a+b+c=1), λ = 고객 비중,
     q = 판매기여 비중, p = 지수.<br>
@@ -146,6 +148,14 @@ def render(data, refresh=False):
         if j['evaluated'] is not None and j['phase'] in ('validation','testing'):
             phase+=f" {j['evaluated']}/{j['evaluation_total']}"
         rows=[]
+        controls=''
+        if j.get('control_comparisons'):
+            control_rows=''.join(f"<tr><td>{label}</td><td>{number(j['control_comparisons'][arm]['mean_delta_vs_none'])}</td><td>{number(j['control_comparisons'][arm]['mean_ai_minus_control'])}</td></tr>" for arm,label in [('random','무작위 추천'),('popular','사전 인기 추천')])
+            controls='<table><thead><tr><th>최종 비교군</th><th>비교군 − 미개입</th><th>AI − 비교군</th></tr></thead><tbody>'+control_rows+'</tbody></table>'
+        if j.get('by_behaviour_world'):
+            names=dict(mixed_logit='꼼꼼한 비교 우세',satisficing='만족 후 선택 우세',lexicographic='우선 기준 선택 우세')
+            world_rows=''.join(f"<tr><td>{names.get(world,escape(world))}</td><td>{number(values['stable']['mean_delta'])}</td><td>{number(values['changed']['mean_delta'])}</td></tr>" for world,values in j['by_behaviour_world'].items())
+            controls+='<table><thead><tr><th>고객 구성별 Δ</th><th>구성 고정</th><th>구성 변경</th></tr></thead><tbody>'+world_rows+'</tbody></table>'
         for label,point in [('최근 검증',j['latest']),('최종 · 구성 고정',j['final_stable']),('최종 · 구성 변경',j['final_changed'])]:
             point=point or {}
             rows.append(f"<tr><td>{label}</td><td>{number(point.get('baseline'))}</td><td>{number(point.get('ai'))}</td><td>{number(point.get('delta'))}</td><td>{number(point.get('percent'),'%',2)}</td></tr>")
@@ -157,6 +167,7 @@ def render(data, refresh=False):
         {chart(j['history'],'percent','검증 향상률 (%)','%')}
         {chart(j['history'],'delta','검증 점수 차이 Δ')}
         <table><thead><tr><th>측정 구분</th><th>미개입</th><th>AI</th><th>Δ</th><th>향상률</th></tr></thead><tbody>{''.join(rows)}</tbody></table>
+        {controls}
         <div class="small muted">검증·시험 환경이 달라 두 결과의 차이를 그대로 학습 추세로 해석하지 않습니다.</div>
         {('<div class="error">'+escape(j['error'])+'</div>') if j.get('error') else ''}</section>''')
     if not jobs:cards=['<div class="empty">실험 시작 대기 중입니다. manifest.json이 생성되면 모델 목록이 표시됩니다.</div>']

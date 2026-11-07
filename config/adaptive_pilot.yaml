@@ -9,8 +9,10 @@ training_blocks: 6
 period_days: 7
 visitors: 35
 venue_types: [campus]
-demand_mode: capacity
-demand_scale: 0.03
+demand_mode: exogenous
+demand_scale: 1.0
+behaviour_worlds: [mixed_logit, satisficing, lexicographic]
+comparison_controls: true
 evaluation_repeats: 2
 validation_every: 3
 ppo_epochs: 2

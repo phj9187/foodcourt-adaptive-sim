@@ -13,7 +13,7 @@ from .models import Court, Dish, CATEGORIES, data_file, rng_for
 
 TYPES=('campus','mall','highway','airport','leisure')
 HOURS=dict(campus=(6,11),mall=(10,12),highway=(16,24),airport=(12,24),leisure=(7,12))
-UNSUPPORTED=('repeat_share','memory_strength')
+UNSUPPORTED=()
 
 
 def evidence():
@@ -140,13 +140,17 @@ def generate_venue(settings,index,split,visitors,design_size=None):
         coordinates=spec['coordinates'],coordinate_names=[k for k in ev['assumed_ranges'] if k not in UNSUPPORTED]+['structure_mix','missing_vendors','missing_hours'],
         parameters=p,unsupported_parameters=list(UNSUPPORTED),opening_minute=spec['opening_minute'],
         weekdays=spec['weekdays'],expected_visitors=potential,
+        exogenous_demand_factor=float(rng_for(settings.seed,'external_population',split,index).lognormal(-.5*.5**2,.5)),
+        exogenous_demand_basis='independent synthetic population multiplier; not fitted traffic',
+        customer_budget_bounds=[.8*float(np.median([d.price for d in dishes])),1.6*float(np.median([d.price for d in dishes]))],
+        customer_budget_basis='synthetic population frozen at venue creation; not recomputed after menu/price interventions',
         capacity_per_vendor=list(map(float,capacity)),demand_basis='synthetic_capacity_times_staff_load',
         source_checked_at=ev['checked_at'],range_status=ev['range_status'],
         caveats=['historical cases are not current measurements or representative population samples',
                  'same evidence anchors can appear across synthetic train/validation/test venues; not source-held-out',
                  'all prices are synthetic KRW; no foreign exchange conversion',
                  'all menu taste, recipes, costs, cooking times and allergens are assumptions',
-                 'meal menu scaffold omits drinks/desserts/buffet and group reservations',
+                 'meal menu scaffold omits drinks/desserts/buffet and coordinated group seating',
                  'service queues drain at daily close; true overnight queue carry is not implemented'])
     return Court(f'{split}_{index:04d}',dishes,servers,kiosks,spec['seats'],duration,stock,costs,provenance)
 

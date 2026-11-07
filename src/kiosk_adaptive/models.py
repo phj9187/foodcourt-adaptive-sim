@@ -4,7 +4,7 @@ import hashlib,json,math
 import numpy as np
 
 CATEGORIES=('분식','중식','일식','양식','한식','동남아식')
-POLICIES=('none','neural')
+POLICIES=('none','random','popular','neural')
 
 def seed_for(seed,*parts):return int.from_bytes(hashlib.sha256(repr((seed,*parts)).encode()).digest()[:8],'big')
 def rng_for(seed,*parts):return np.random.default_rng(seed_for(seed,*parts))
@@ -74,10 +74,23 @@ class Settings:
  dining_minutes:float=20.
  peak_fraction:float=.65
  venue_type:str='campus'
+ behaviour_world:str='mixed_logit'
+ dominant_choice_share:float=.6
+ repeat_share:float=.4
+ memory_strength:float=.3
+ regular_visit_probability:float=.9
+ input_noise:float=.06
+ display_strength:float=.25
+ habit_strength:float=.25
+ postpayment_cancel_probability:float=.25
  def validate(self):
   if self.duration<=0 or self.stock_cover<=0 or self.wait_scale<=0:raise ValueError('positive operating scales required')
   if self.servers_per_counter<1 or self.kiosks<1 or self.seats<0:raise ValueError('invalid capacity')
   if not 0<=self.openness<=1:raise ValueError('invalid probability')
+  from .customers import WORLDS
+  if self.behaviour_world not in WORLDS:raise ValueError('unknown behaviour world')
+  if any(not 0<=v<=1 for v in (self.repeat_share,self.memory_strength,self.regular_visit_probability,self.postpayment_cancel_probability,self.dominant_choice_share)):raise ValueError('invalid customer probability')
+  if self.input_noise<0 or self.display_strength<0 or self.habit_strength<0:raise ValueError('invalid customer scale')
   return self
  def to_dict(self):return asdict(self)
 

@@ -16,7 +16,8 @@ class Objective:
     power: float = 1.0
 
     def components(self, row):
-        # All visitors are the denominator, including non-buyers with zero utility.
+        # All potential visits are the denominator, including policy-dependent
+        # nonattendance/nonbuyers with zero utility. Not measured satisfaction.
         c = sum(w * max(0., row[k]) ** self.power for w, k in (
             (self.taste, 'taste'), (self.affordability, 'affordability'),
             (self.waiting, 'waiting')))

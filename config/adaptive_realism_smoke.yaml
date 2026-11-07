@@ -1,0 +1,21 @@
+# End-to-end verification only, not evidence of converged learning or real benefit.
+seed: 20261107
+lhs_samples: 1
+powers: [1.0]
+replicas: 1
+train_courts: 3
+validation_courts: 1
+test_courts: 2
+training_blocks: 3
+period_days: 7
+visitors: 15
+venue_types: [campus]
+demand_mode: exogenous
+demand_scale: 1.0
+behaviour_worlds: [mixed_logit, satisficing, lexicographic]
+comparison_controls: true
+evaluation_repeats: 1
+validation_every: 3
+ppo_epochs: 1
+hidden: 16
+threads: 1
