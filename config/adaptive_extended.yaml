@@ -1,0 +1,29 @@
+# Long main experiment (more than one day on a Colab Pro+ high-RAM CPU runtime).
+# 27 objectives (24 LHS + 3 boundary) x 5 independent replicas = 135 jobs.
+# Run with --workers <cpu count>. Colab stops a runtime after about 24 hours:
+# rerun the notebook with the same experiment ID and it resumes from the
+# checkpoints, skipping finished jobs.
+seed: 20261108
+lhs_samples: 24
+powers: [1.0]
+replicas: 5
+train_courts: 36
+validation_courts: 8
+test_courts: 24
+training_blocks: 240
+period_days: 14
+visitors: 150
+venue_types: [campus]
+demand_mode: exogenous
+demand_scale: 1.0
+behaviour_worlds: [mixed_logit, satisficing, lexicographic]
+comparison_controls: true
+rule_controls: true
+reward_mode: decomposed
+gae_lambda: 0.95
+baseline_audit: true
+evaluation_repeats: 2
+validation_every: 24
+ppo_epochs: 4
+hidden: 48
+threads: 1
