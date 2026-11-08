@@ -81,7 +81,7 @@ class CustomerTests(unittest.TestCase):
         self.assertEqual(len(pairs),6)
         for p in pairs:
             self.assertAlmostEqual(p['delta'],p['ai_score']-p['baseline_score'])
-            self.assertEqual(set(p['controls']),{'random','popular'})
+            self.assertEqual(set(p['controls']),{'random','popular','rule_fit','rule_fast','rule_margin','rule_objective'})
             for a,b in zip(p['baseline'],p['ai']):
                 self.assertEqual(a['potential_visitors'],b['potential_visitors'])
             for arm in p['controls'].values():

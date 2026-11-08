@@ -5,6 +5,7 @@ import numpy as np
 
 CATEGORIES=('분식','중식','일식','양식','한식','동남아식')
 POLICIES=('none','random','popular','neural')
+RULES=('rule_fit','rule_fast','rule_margin','rule_objective')
 
 def seed_for(seed,*parts):return int.from_bytes(hashlib.sha256(repr((seed,*parts)).encode()).digest()[:8],'big')
 def rng_for(seed,*parts):return np.random.default_rng(seed_for(seed,*parts))
@@ -83,6 +84,11 @@ class Settings:
  display_strength:float=.25
  habit_strength:float=.25
  postpayment_cancel_probability:float=.25
+ # Information-gap sensitivity: None keeps each venue's sampled taste_noise.
+ taste_noise_override:float|None=None
+ input_missing_probability:float=0.
+ # 'demand' sizes opening stock to the exogenous visitor mean; 'capacity' is the old load-based stock.
+ stock_basis:str='demand'
  def validate(self):
   if self.duration<=0 or self.stock_cover<=0 or self.wait_scale<=0:raise ValueError('positive operating scales required')
   if self.servers_per_counter<1 or self.kiosks<1 or self.seats<0:raise ValueError('invalid capacity')
@@ -91,6 +97,9 @@ class Settings:
   if self.behaviour_world not in WORLDS:raise ValueError('unknown behaviour world')
   if any(not 0<=v<=1 for v in (self.repeat_share,self.memory_strength,self.regular_visit_probability,self.postpayment_cancel_probability,self.dominant_choice_share)):raise ValueError('invalid customer probability')
   if self.input_noise<0 or self.display_strength<0 or self.habit_strength<0:raise ValueError('invalid customer scale')
+  if self.taste_noise_override is not None and not 0<=self.taste_noise_override<=2:raise ValueError('invalid taste noise override')
+  if not 0<=self.input_missing_probability<=1:raise ValueError('invalid missing-input probability')
+  if self.stock_basis not in ('demand','capacity'):raise ValueError('unknown stock basis')
   return self
  def to_dict(self):return asdict(self)
 

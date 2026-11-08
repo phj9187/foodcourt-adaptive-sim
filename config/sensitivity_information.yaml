@@ -1,0 +1,14 @@
+# Information-gap sweep on paired test venues. Evaluation only; set model_dir to a
+# finished study output folder to include its trained PPO (rep_0 best checkpoint).
+seed: 20261105
+visitors: 150
+period_days: 7
+test_courts: 6
+evaluation_repeats: 1
+demand_mode: exogenous
+objectives: [customer_only, profit_only, lhs_0000]
+behaviour_worlds: [mixed_logit, satisficing, lexicographic]
+taste_noise: [0.0, 0.1, 0.2, 0.45]
+input_noise: [0.06, 0.3]
+input_missing_probability: [0.0]
+model_dir: null

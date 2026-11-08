@@ -73,7 +73,9 @@ def design_plan(seed, split, size, types, candidates):
                                  max(1,int(p['protein_life_days'])),max(1,int(p['vegetable_life_days'])))
             p['lead_days']=max(1,int(round(p['lead_days'])))
             for key in ('protein_life_days','staple_life_days','vegetable_life_days'):
-                p[key]=max(1,int(round(p[key])))
+                # A delivered batch must survive at least one service day after
+                # arrival; shorter lives make every order expire unsold.
+                p[key]=max(1,int(round(p[key])),p['lead_days']+1)
             p['stock_cover_days']=min(p['stock_cover_days'],p['protein_life_days'],p['vegetable_life_days'])
             p['attention_limit']=max(1,int(round(p['attention_limit'])))
             opening=int(structure('opening_minute',480 if kind=='campus' else 600 if kind in ('mall','leisure') else 0))
