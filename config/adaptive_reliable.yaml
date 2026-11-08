@@ -1,0 +1,28 @@
+# Main experiment for reliable estimates on Colab (Pro+ CPU runtime).
+# 15 objectives (12 LHS + 3 boundary) x 3 independent replicas = 45 jobs.
+# Run with --workers <cpu count>; jobs are independent and resume from
+# checkpoints, finished jobs are skipped. Expect roughly 10-15 hours on 8 cores.
+seed: 20261108
+lhs_samples: 12
+powers: [1.0]
+replicas: 3
+train_courts: 24
+validation_courts: 6
+test_courts: 16
+training_blocks: 144
+period_days: 14
+visitors: 150
+venue_types: [campus]
+demand_mode: exogenous
+demand_scale: 1.0
+behaviour_worlds: [mixed_logit, satisficing, lexicographic]
+comparison_controls: true
+rule_controls: true
+reward_mode: decomposed
+gae_lambda: 0.95
+baseline_audit: true
+evaluation_repeats: 2
+validation_every: 24
+ppo_epochs: 4
+hidden: 48
+threads: 1

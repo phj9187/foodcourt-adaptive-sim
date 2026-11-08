@@ -354,9 +354,95 @@ DEFAULT = dict(seed=20261105, lhs_samples=8, powers=[1.0], replicas=3,
                behaviour_worlds=list(WORLDS),comparison_controls=True,
                rule_controls=True,reward_mode='decomposed',gae_lambda=.95,
                taste_noise_override=None,input_noise=.06,input_missing_probability=0.,
-               stock_basis='demand',baseline_audit=True,
+               stock_basis='demand',baseline_audit=True,workers=1,
                audit_thresholds=dict(min_served_fraction=.6,max_stock_blocked_fraction=.15,
                                      max_waste_to_revenue=.5,max_zero_service_days=0))
+
+
+def run_job(objective, rep, cfg, settings, catalog, audit, output):
+    """Train, select and test one (objective, replica); safe to run in a worker process."""
+    torch.set_num_threads(cfg['threads'])
+    job = output/objective.id/f'rep_{rep}'
+    if (job/'summary.json').exists():
+        return json.loads((job/'summary.json').read_text(encoding='utf-8'))
+    job.mkdir(parents=True,exist_ok=True)
+    seed = seed_for(cfg['seed'],objective.id,rep) % (2**31)
+    torch.manual_seed(seed)
+    model = ActorCritic(cfg['hidden'])
+    optimizer = torch.optim.Adam(model.parameters(),lr=cfg['learning_rate'])
+    start, best_score, best, history = 0, -float('inf'), None, []
+    live_history=[]
+    checkpoint = job/'checkpoint.pt'
+    if checkpoint.exists():
+        try:
+            saved = torch.load(checkpoint, map_location='cpu', weights_only=False)
+        except (RuntimeError, EOFError, OSError):
+            saved = torch.load(checkpoint.with_suffix('.previous.pt'),map_location='cpu',weights_only=False)
+        model.load_state_dict(saved['model']); optimizer.load_state_dict(saved['optimizer'])
+        start, best_score, best, history = saved['block'], saved['best_score'], saved['best'], saved['history']
+        live_history=saved.get('live_history',[])
+        torch.set_rng_state(saved['torch_rng'])
+    def publish(phase, block, **extra):
+        atomic_json(job/'live.json',dict(phase=phase,block=block,
+                    total=cfg['training_blocks'],history=live_history,**extra))
+    if start==0 and not live_history:
+        publish('validation',0,evaluated=0,
+                evaluation_total=cfg['evaluation_repeats']*cfg['validation_courts']*2*len(cfg['behaviour_worlds']))
+        initial=evaluate(model,settings,objective,cfg,'validation',
+                         lambda n,total:publish('validation',0,evaluated=n,evaluation_total=total))
+        live_history.append(dict(block=0,**comparison(initial)))
+        # The untrained model is a legitimate candidate: if training only
+        # hurts on validation, the initial network is kept.
+        best_score=float(np.mean([p['delta'] for p in initial]));best=copy.deepcopy(model.state_dict())
+        publish('training',0)
+    for block in range(start,cfg['training_blocks']):
+        publish('training',block)
+        # Revisit each court in shuffled cycles; retain multi-day continuity inside blocks.
+        cycle = block//cfg['train_courts']
+        order = rng_for(seed,'order',cycle).permutation(cfg['train_courts'])
+        index = int(order[block%cfg['train_courts']])
+        court = catalog['train'][index]
+        world=cfg['behaviour_worlds'][block%len(cfg['behaviour_worlds'])]
+        rows, samples = period(court,replace(settings,behaviour_world=world),objective,cfg['period_days'],
+            f'train_rep{rep}_block{block}',visitor_mean(court,cfg),model,learn=True,changes=bool(block%2),
+            reward_mode=cfg['reward_mode'])
+        info = update_ppo(model,optimizer,samples,epochs=cfg['ppo_epochs'],gae_lambda=cfg['gae_lambda'])
+        history.append(dict(block=block+1,court=court.id,behaviour_world=world,score=period_score(rows),**info))
+        if (block+1)%cfg['validation_every']==0 or block+1==cfg['training_blocks']:
+            publish('validation',block+1,evaluated=0,
+                    evaluation_total=cfg['evaluation_repeats']*cfg['validation_courts']*2*len(cfg['behaviour_worlds']))
+            validation = evaluate(model,settings,objective,cfg,'validation',
+                lambda n,total:publish('validation',block+1,evaluated=n,evaluation_total=total))
+            value = float(np.mean([p['delta'] for p in validation]))
+            history[-1]['validation_delta'] = value
+            live_history.append(dict(block=block+1,**comparison(validation)))
+            if value>best_score:
+                best_score=value; best=copy.deepcopy(model.state_dict())
+        atomic_torch(checkpoint,dict(block=block+1,model=model.state_dict(),
+            optimizer=optimizer.state_dict(),torch_rng=torch.get_rng_state(),
+            best_score=best_score,best=best,history=history,live_history=live_history))
+        atomic_json(job/'progress.json',dict(block=block+1,total=cfg['training_blocks'],last=history[-1]))
+        publish('training',block+1)
+        print(f'{objective.id} rep={rep} block={block+1}/{cfg["training_blocks"]}',flush=True)
+    model.load_state_dict(best)
+    publish('testing',cfg['training_blocks'],evaluated=0,
+            evaluation_total=cfg['evaluation_repeats']*cfg['test_courts']*2*len(cfg['behaviour_worlds']))
+    pairs = evaluate(model,settings,objective,cfg,'test',
+        lambda n,total:publish('testing',cfg['training_blocks'],evaluated=n,evaluation_total=total))
+    arms=sorted({arm for p in pairs for arm in p['controls']})
+    summary = dict(objective=asdict(objective),replica=rep,validation_delta=best_score,
+                   validation_note='maximum over repeated checkpoint evaluations on fixed validation venues; optimistic, report test results',
+                   results=summarize(pairs,seed),
+                   by_behaviour_world={world:summarize([p for p in pairs if p['behaviour_world']==world],seed) for world in cfg['behaviour_worlds']},
+                   control_comparisons={arm:dict(mean_delta_vs_none=float(np.mean([p['controls'][arm]['delta_vs_none'] for p in pairs])),
+                       mean_ai_minus_control=float(np.mean([p['controls'][arm]['ai_minus_control'] for p in pairs]))) for arm in arms},
+                   flagged_test_courts=[c for c in (audit or {}).get('flagged',[]) if c.startswith('test_')])
+    atomic_json(job/'paired_test.json',pairs); atomic_json(job/'summary.json',summary)
+    atomic_json(job/'learning_history.json',history)
+    publish('complete',cfg['training_blocks'],
+            test_stable=comparison([p for p in pairs if not p['changes']]),
+            test_changed=comparison([p for p in pairs if p['changes']]))
+    return summary
 
 
 def run(config, output):
@@ -365,7 +451,7 @@ def run(config, output):
         raise ValueError('unknown configuration keys: '+str(set(cfg)-set(DEFAULT)))
     for key in ('seed','lhs_samples','replicas','train_courts','validation_courts','test_courts',
                 'training_blocks','period_days','visitors','evaluation_repeats','validation_every',
-                'ppo_epochs','hidden','threads'):
+                'ppo_epochs','hidden','threads','workers'):
         if type(cfg[key]) is not int or cfg[key] < (0 if key=='seed' else 1):
             raise ValueError('invalid '+key)
     if not cfg['powers'] or any(not math.isfinite(p) or p<=0 for p in cfg['powers']):
@@ -404,7 +490,8 @@ def run(config, output):
         Path(__file__).parent/'data'/'venue_evidence.json']
     for path in sorted(paths):
         fingerprint.update(path.name.encode()); fingerprint.update(path.read_bytes())
-    manifest = dict(schema=2, config=cfg, code_sha256=fingerprint.hexdigest(),
+    # workers only changes scheduling, never results, so it may differ on resume.
+    manifest = dict(schema=2, config={k:v for k,v in cfg.items() if k!='workers'}, code_sha256=fingerprint.hexdigest(),
                     objectives=[asdict(o) for o in objectives], lhs_cube=cube,
                     versions=dict(torch=torch.__version__, numpy=np.__version__),
                     assumptions=['synthetic customer response, not measured satisfaction',
@@ -432,88 +519,26 @@ def run(config, output):
         else:
             audit=baseline_audit(catalog,settings,cfg,objectives[0],cfg['audit_thresholds'])
             atomic_json(audit_path,audit)
-    summaries = []
-    for objective in objectives:
-        for rep in range(cfg['replicas']):
-            job = output/objective.id/f'rep_{rep}'; job.mkdir(parents=True,exist_ok=True)
-            seed = seed_for(cfg['seed'],objective.id,rep) % (2**31)
-            torch.manual_seed(seed)
-            model = ActorCritic(cfg['hidden'])
-            optimizer = torch.optim.Adam(model.parameters(),lr=cfg['learning_rate'])
-            start, best_score, best, history = 0, -float('inf'), None, []
-            live_history=[]
-            checkpoint = job/'checkpoint.pt'
-            if checkpoint.exists():
-                try:
-                    saved = torch.load(checkpoint, map_location='cpu', weights_only=False)
-                except (RuntimeError, EOFError, OSError):
-                    saved = torch.load(checkpoint.with_suffix('.previous.pt'),map_location='cpu',weights_only=False)
-                model.load_state_dict(saved['model']); optimizer.load_state_dict(saved['optimizer'])
-                start, best_score, best, history = saved['block'], saved['best_score'], saved['best'], saved['history']
-                live_history=saved.get('live_history',[])
-                torch.set_rng_state(saved['torch_rng'])
-            def publish(phase, block, **extra):
-                atomic_json(job/'live.json',dict(phase=phase,block=block,
-                            total=cfg['training_blocks'],history=live_history,**extra))
-            if start==0 and not live_history:
-                publish('validation',0,evaluated=0,
-                        evaluation_total=cfg['evaluation_repeats']*cfg['validation_courts']*2*len(cfg['behaviour_worlds']))
-                initial=evaluate(model,settings,objective,cfg,'validation',
-                                 lambda n,total:publish('validation',0,evaluated=n,evaluation_total=total))
-                live_history.append(dict(block=0,**comparison(initial)))
-                # The untrained model is a legitimate candidate: if training only
-                # hurts on validation, the initial network is kept.
-                best_score=float(np.mean([p['delta'] for p in initial]));best=copy.deepcopy(model.state_dict())
-                publish('training',0)
-            for block in range(start,cfg['training_blocks']):
-                publish('training',block)
-                # Revisit each court in shuffled cycles; retain multi-day continuity inside blocks.
-                cycle = block//cfg['train_courts']
-                order = rng_for(seed,'order',cycle).permutation(cfg['train_courts'])
-                index = int(order[block%cfg['train_courts']])
-                court = catalog['train'][index]
-                world=cfg['behaviour_worlds'][block%len(cfg['behaviour_worlds'])]
-                rows, samples = period(court,replace(settings,behaviour_world=world),objective,cfg['period_days'],
-                    f'train_rep{rep}_block{block}',visitor_mean(court,cfg),model,learn=True,changes=bool(block%2),
-                    reward_mode=cfg['reward_mode'])
-                info = update_ppo(model,optimizer,samples,epochs=cfg['ppo_epochs'],gae_lambda=cfg['gae_lambda'])
-                history.append(dict(block=block+1,court=court.id,behaviour_world=world,score=period_score(rows),**info))
-                if (block+1)%cfg['validation_every']==0 or block+1==cfg['training_blocks']:
-                    publish('validation',block+1,evaluated=0,
-                            evaluation_total=cfg['evaluation_repeats']*cfg['validation_courts']*2*len(cfg['behaviour_worlds']))
-                    validation = evaluate(model,settings,objective,cfg,'validation',
-                        lambda n,total:publish('validation',block+1,evaluated=n,evaluation_total=total))
-                    value = float(np.mean([p['delta'] for p in validation]))
-                    history[-1]['validation_delta'] = value
-                    live_history.append(dict(block=block+1,**comparison(validation)))
-                    if value>best_score:
-                        best_score=value; best=copy.deepcopy(model.state_dict())
-                atomic_torch(checkpoint,dict(block=block+1,model=model.state_dict(),
-                    optimizer=optimizer.state_dict(),torch_rng=torch.get_rng_state(),
-                    best_score=best_score,best=best,history=history,live_history=live_history))
-                atomic_json(job/'progress.json',dict(block=block+1,total=cfg['training_blocks'],last=history[-1]))
-                publish('training',block+1)
-                print(f'{objective.id} rep={rep} block={block+1}/{cfg["training_blocks"]}',flush=True)
-            model.load_state_dict(best)
-            publish('testing',cfg['training_blocks'],evaluated=0,
-                    evaluation_total=cfg['evaluation_repeats']*cfg['test_courts']*2*len(cfg['behaviour_worlds']))
-            pairs = evaluate(model,settings,objective,cfg,'test',
-                lambda n,total:publish('testing',cfg['training_blocks'],evaluated=n,evaluation_total=total))
-            arms=sorted({arm for p in pairs for arm in p['controls']})
-            summary = dict(objective=asdict(objective),replica=rep,validation_delta=best_score,
-                           validation_note='maximum over repeated checkpoint evaluations on fixed validation venues; optimistic, report test results',
-                           results=summarize(pairs,seed),
-                           by_behaviour_world={world:summarize([p for p in pairs if p['behaviour_world']==world],seed) for world in cfg['behaviour_worlds']},
-                           control_comparisons={arm:dict(mean_delta_vs_none=float(np.mean([p['controls'][arm]['delta_vs_none'] for p in pairs])),
-                               mean_ai_minus_control=float(np.mean([p['controls'][arm]['ai_minus_control'] for p in pairs]))) for arm in arms},
-                           flagged_test_courts=[c for c in (audit or {}).get('flagged',[]) if c.startswith('test_')])
-            atomic_json(job/'paired_test.json',pairs); atomic_json(job/'summary.json',summary)
-            atomic_json(job/'learning_history.json',history)
-            publish('complete',cfg['training_blocks'],
-                    test_stable=comparison([p for p in pairs if not p['changes']]),
-                    test_changed=comparison([p for p in pairs if p['changes']]))
-            summaries.append(summary); atomic_json(output/'summary.json',summaries)
-            atomic_json(output/'objective_summary.json',combine_replicas(summaries,cfg['seed']))
+    jobs=[(objective,rep) for objective in objectives for rep in range(cfg['replicas'])]
+    summaries=[None]*len(jobs)
+    def record(index, summary):
+        summaries[index]=summary
+        done=[x for x in summaries if x is not None]
+        atomic_json(output/'summary.json',done)
+        atomic_json(output/'objective_summary.json',combine_replicas(done,cfg['seed']))
+    if cfg['workers']==1:
+        for index,(objective,rep) in enumerate(jobs):
+            record(index,run_job(objective,rep,cfg,settings,catalog,audit,output))
+    else:
+        # Independent jobs share nothing but read-only inputs; results are
+        # identical to sequential execution because every job seeds itself.
+        import multiprocessing
+        from concurrent.futures import ProcessPoolExecutor, as_completed
+        with ProcessPoolExecutor(max_workers=cfg['workers'],mp_context=multiprocessing.get_context('spawn')) as pool:
+            futures={pool.submit(run_job,objective,rep,cfg,settings,catalog,audit,output):index
+                     for index,(objective,rep) in enumerate(jobs)}
+            for future in as_completed(futures):
+                record(futures[future],future.result())
     export_csv(output, summaries)
     return summaries
 
@@ -540,8 +565,11 @@ def export_csv(output, summaries):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--config',required=True); parser.add_argument('--output',required=True)
+    parser.add_argument('--workers',type=int,help='parallel (objective, replica) jobs; overrides the config')
     args = parser.parse_args()
-    run(yaml.safe_load(Path(args.config).read_text(encoding='utf-8')) or {}, args.output)
+    config=yaml.safe_load(Path(args.config).read_text(encoding='utf-8')) or {}
+    if args.workers is not None:config['workers']=args.workers
+    run(config, args.output)
 
 
 if __name__=='__main__':
