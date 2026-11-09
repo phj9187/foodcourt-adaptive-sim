@@ -38,6 +38,16 @@ class _Captured(Exception):
     pass
 
 
+def _cpu_only_seeding():
+    """Worker initializer. torch.manual_seed also seeds every registered custom device; on Colab TPU
+    runtimes that is torch_tpu, which takes a machine-wide libtpu lock, so only one worker per TPU
+    runtime could start a job and the rest failed. The simulation is CPU-only and CPU seeding is
+    unchanged, so skip the device part."""
+    import torch.random
+    if hasattr(torch.random, '_seed_custom_device'):
+        torch.random._seed_custom_device = lambda seed: None
+
+
 def prepare(config, output):
     """Let study.run validate, write/verify the manifest and build the
     catalog and audit exactly as it does, then stop before the first job."""
@@ -133,7 +143,8 @@ def main():
                     print('heartbeat failed', exc, flush=True)
 
     threading.Thread(target=heartbeat, daemon=True).start()
-    pool = ProcessPoolExecutor(max_workers=args.workers, mp_context=multiprocessing.get_context('spawn'))
+    pool = ProcessPoolExecutor(max_workers=args.workers, mp_context=multiprocessing.get_context('spawn'),
+                               initializer=_cpu_only_seeding)
     try:
         while True:
             with lock:
