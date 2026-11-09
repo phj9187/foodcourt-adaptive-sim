@@ -135,7 +135,10 @@ def simulate(court,settings,policy='none',theta=None,day=0,namespace='evaluation
   threshold=(-1. if ws[i]>ps[i] and ws[i]>.7 else 0. if ps[i]>.7 else .5) if world=='lexicographic' else .5
   chosen,inspected=choose_menu(order,utility,shocks[i],prices,perceived,estimated[i],world,threshold)
   accepted=bool(exposed and chosen==suggestions[0])
-  browsing=s.decision_base+s.per_item_minutes*len(inspected)+(s.recommendation_overhead if suggestions else 0.)
+  # Input-based recommenders (PPO and rule controls, policy 'neural') make the
+  # customer enter personal inputs first; skipped inputs cost no time.
+  entry=s.input_minutes if policy=='neural' and not customers[i]['inputs_missing'] else 0.
+  browsing=entry+s.decision_base+s.per_item_minutes*len(inspected)+(s.recommendation_overhead if suggestions else 0.)
   reason='order'
   if s.outside_utility+outside[i]>utility[chosen]+shocks[i,chosen]:reason='outside_option'
   elif t+browsing+perceived[chosen]>r['arrival']+class_gap[i]:reason='predicted_wait_decline'

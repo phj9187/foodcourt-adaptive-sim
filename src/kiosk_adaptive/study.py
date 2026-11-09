@@ -353,7 +353,7 @@ DEFAULT = dict(seed=20261105, lhs_samples=8, powers=[1.0], replicas=3,
                demand_mode='exogenous',demand_scale=1.,venue_lhs_candidates=24,
                behaviour_worlds=list(WORLDS),comparison_controls=True,
                rule_controls=True,reward_mode='decomposed',gae_lambda=.95,
-               taste_noise_override=None,input_noise=.06,input_missing_probability=0.,
+               taste_noise_override=None,input_noise=.06,input_missing_probability=0.,input_minutes=0.,
                stock_basis='demand',baseline_audit=True,workers=1,
                audit_thresholds=dict(min_served_fraction=.6,max_stock_blocked_fraction=.15,
                                      max_waste_to_revenue=.5,max_zero_service_days=0))
@@ -479,7 +479,7 @@ def run(config, output):
     output = Path(output); output.mkdir(parents=True, exist_ok=True)
     settings = Settings(seed=cfg['seed'], recommendation_count=1,venue_types=tuple(cfg['venue_types']),venue_lhs_candidates=cfg['venue_lhs_candidates'],
                         taste_noise_override=cfg['taste_noise_override'],input_noise=cfg['input_noise'],
-                        input_missing_probability=cfg['input_missing_probability'],stock_basis=cfg['stock_basis']).validate()
+                        input_missing_probability=cfg['input_missing_probability'],input_minutes=cfg['input_minutes'],stock_basis=cfg['stock_basis']).validate()
     objectives, cube = lhs_objectives(cfg['lhs_samples'], cfg['seed'])
     objectives = [replace(o, id=o.id+f'_p{p:g}', power=p) for p in cfg['powers'] for o in objectives]
     fingerprint = hashlib.sha256()

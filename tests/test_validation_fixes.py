@@ -95,6 +95,21 @@ class ValidationFixTests(unittest.TestCase):
         x = np.concatenate(seen)
         self.assertTrue(np.allclose(x[:, [0, 1, 2, 4, 5, 6]], .5))
 
+    def test_input_minutes_only_for_input_based_arms(self):
+        from dataclasses import replace
+        court = make_court(self.s, 0, 'test', 40)
+        def first(s, policy):
+            _, raw = simulate(court, s, policy, visitors=40, raw=True,
+                              controller=(lambda x, rng: 0) if policy == 'neural' else None)
+            return min((r for r in raw['records'] if 'decision' in r), key=lambda r: r['arrival'])['decision']
+        slow = replace(self.s, input_minutes=.5)
+        self.assertAlmostEqual(first(slow, 'neural') - first(self.s, 'neural'), .5, places=6)
+        for policy in ('none', 'popular', 'random'):
+            self.assertEqual(first(slow, policy), first(self.s, policy))
+        # Skipped inputs take no entry time.
+        skipped = replace(slow, input_missing_probability=1.)
+        self.assertEqual(first(skipped, 'neural'), first(replace(self.s, input_missing_probability=1.), 'neural'))
+
     def test_reward_sums_equal_daily_scores(self):
         court = make_court(self.s, 1, 'test', 60)
         for mode in ('decomposed', 'daily'):

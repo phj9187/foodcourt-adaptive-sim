@@ -87,6 +87,9 @@ class Settings:
  # Information-gap sensitivity: None keeps each venue's sampled taste_noise.
  taste_noise_override:float|None=None
  input_missing_probability:float=0.
+ # Kiosk time a customer spends entering the personal inputs (taste x3, price,
+ # wait, hurry, budget) that input-based recommenders read. 0 keeps old results.
+ input_minutes:float=0.
  # 'demand' sizes opening stock to the exogenous visitor mean; 'capacity' is the old load-based stock.
  stock_basis:str='demand'
  def validate(self):
@@ -99,6 +102,7 @@ class Settings:
   if self.input_noise<0 or self.display_strength<0 or self.habit_strength<0:raise ValueError('invalid customer scale')
   if self.taste_noise_override is not None and not 0<=self.taste_noise_override<=2:raise ValueError('invalid taste noise override')
   if not 0<=self.input_missing_probability<=1:raise ValueError('invalid missing-input probability')
+  if not 0<=self.input_minutes<=10:raise ValueError('invalid input_minutes')
   if self.stock_basis not in ('demand','capacity'):raise ValueError('unknown stock basis')
   return self
  def to_dict(self):return asdict(self)
