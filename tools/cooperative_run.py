@@ -77,6 +77,16 @@ def ordered_jobs(objectives, replicas, first_reps):
     return first + rest
 
 
+def diversify(pending, me, first_reps):
+    """Same tiers for everyone (first replicas, then the rest); runtime-specific order inside a tier."""
+    import random
+    first = [j for j in pending if j[1] < first_reps]
+    rest = [j for j in pending if j[1] >= first_reps]
+    rng = random.Random(me)
+    rng.shuffle(first); rng.shuffle(rest)
+    return first + rest
+
+
 def _now():
     return time.time()
 
@@ -118,6 +128,7 @@ def main():
     parser.add_argument('--workers', type=int, default=os.cpu_count() or 1)
     parser.add_argument('--first-reps', type=int, default=3)
     parser.add_argument('--runtime', default=None)
+    parser.add_argument('--settle', type=float, default=75., help='seconds to wait for racing claims to appear')
     args = parser.parse_args()
     me = args.runtime or f'{socket.gethostname()}-{uuid.uuid4().hex[:6]}'
     output = Path(args.output)
@@ -157,14 +168,23 @@ def main():
                 pending.append((o, r))
             if not pending and not running:
                 break
-            for o, r in pending:
-                if len(running) >= args.workers:
+            # Every runtime walks the same priority tiers but in its own order inside a tier, and
+            # claims are settled in one batch: Drive needs tens of seconds to show another runtime's
+            # claim, so a short per-job wait let two runtimes start the same jobs.
+            free = args.workers - len(running)
+            claimed = []
+            for o, r in diversify(pending, me, args.first_reps):
+                if len(claimed) >= free:
                     break
                 job = path(o, r)
                 if busy_elsewhere(job, me):
                     continue
                 write_claim(job, me)
-                time.sleep(2)  # let a racing claim land, then re-check ownership
+                claimed.append((o, r))
+            if claimed:
+                time.sleep(args.settle)
+            for o, r in claimed:
+                job = path(o, r)
                 try:
                     owner = json.loads((job / 'claim.json').read_text(encoding='utf-8')).get('runtime')
                 except (ValueError, OSError):
