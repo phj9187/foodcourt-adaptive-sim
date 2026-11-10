@@ -90,6 +90,11 @@ class Settings:
  # Kiosk time a customer spends entering the personal inputs (taste x3, price,
  # wait, hurry, budget) that input-based recommenders read. 0 keeps old results.
  input_minutes:float=0.
+ # Dish taste axes. 'latent': 3 unnamed numbers around a random per-counter centre (original runs).
+ # 'named': spicy / salty / rich, taken from each anchor dish's assumed 5-level profile in
+ # data/menu_anchors.json plus a small per-vendor recipe variation (dish_taste_sd).
+ taste_model:str='latent'
+ dish_taste_sd:float=.06
  # 'demand' sizes opening stock to the exogenous visitor mean; 'capacity' is the old load-based stock.
  stock_basis:str='demand'
  def validate(self):
@@ -103,6 +108,8 @@ class Settings:
   if self.taste_noise_override is not None and not 0<=self.taste_noise_override<=2:raise ValueError('invalid taste noise override')
   if not 0<=self.input_missing_probability<=1:raise ValueError('invalid missing-input probability')
   if not 0<=self.input_minutes<=10:raise ValueError('invalid input_minutes')
+  if self.taste_model not in ('latent','named'):raise ValueError('invalid taste_model')
+  if not 0<=self.dish_taste_sd<=.5:raise ValueError('invalid dish_taste_sd')
   if self.stock_basis not in ('demand','capacity'):raise ValueError('unknown stock basis')
   return self
  def to_dict(self):return asdict(self)

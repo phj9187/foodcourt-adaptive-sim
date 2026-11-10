@@ -91,6 +91,18 @@ def design_plan(seed, split, size, types, candidates):
     return tuple(sorted(plan,key=lambda p:p['slot']))
 
 
+TASTE_AXES=('spicy','salty','rich')  # 맵기, 짠맛(간), 기름진 정도; 0..1 = 5 levels 1..5
+
+
+def dish_taste(settings,anchor,center,draw):
+    """Dish taste on the three axes. The same random draw is consumed in both models so that
+    every other venue quantity (counts, prices, cook times) stays identical between them."""
+    if getattr(settings,'taste_model','latent')=='named':
+        base=np.array([anchor['taste'][k] for k in TASTE_AXES],dtype=float)
+        return tuple(np.clip(base+draw*(settings.dish_taste_sd/.12),0,1))
+    return tuple(np.clip(center+draw,0,1))
+
+
 def generate_venue(settings,index,split,visitors,design_size=None):
     size=design_size or settings.venue_samples
     batch,index_in_batch=divmod(index,size)
@@ -116,7 +128,7 @@ def generate_venue(settings,index,split,visitors,design_size=None):
             price=max(500.,float(round((anchor['price_won'] or 5000)*p['price_multiplier']/500)*500))
             recipe=dict(staple=1,protein=int(rng.integers(1,3)),vegetable=int(rng.integers(1,3)))
             dishes.append(Dish(f'S{counter}M{slot:03d}','가상 '+anchor['name']+f' {counter+1}-{slot+1}',
-                counter,category,price,recipe,tuple(np.clip(center+rng.normal(0,.12,3),0,1)),
+                counter,category,price,recipe,dish_taste(settings,anchor,center,rng.normal(0,.12,3)),
                 float(p['cook_minutes']*rng.uniform(.7,1.3)),float(rng.lognormal(0,.4)),False,
                 ('wheat',) if category in ('분식','중식','일식','양식') else (),
                 anchor['source_id'],False,'synthetic_multiplier_historical_anchor'))

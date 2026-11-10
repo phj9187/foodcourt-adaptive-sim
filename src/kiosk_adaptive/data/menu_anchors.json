@@ -7,7 +7,12 @@
     "price_high_won": 4500,
     "role": "main",
     "source_id": "yonsei_2026",
-    "price_status": "published_point"
+    "price_status": "published_point",
+    "taste": {
+      "spicy": 0,
+      "salty": 0.5,
+      "rich": 0.75
+    }
   },
   {
     "id": "Y01",
@@ -17,7 +22,12 @@
     "price_high_won": 6000,
     "role": "main",
     "source_id": "yonsei_2026",
-    "price_status": "published_point"
+    "price_status": "published_point",
+    "taste": {
+      "spicy": 0,
+      "salty": 0.75,
+      "rich": 0.75
+    }
   },
   {
     "id": "Y02",
@@ -27,7 +37,12 @@
     "price_high_won": 5500,
     "role": "main",
     "source_id": "yonsei_2026",
-    "price_status": "published_point"
+    "price_status": "published_point",
+    "taste": {
+      "spicy": 0.75,
+      "salty": 0.75,
+      "rich": 0.5
+    }
   },
   {
     "id": "Y03",
@@ -37,7 +52,12 @@
     "price_high_won": 6500,
     "role": "main",
     "source_id": "yonsei_2026",
-    "price_status": "published_point"
+    "price_status": "published_point",
+    "taste": {
+      "spicy": 0.75,
+      "salty": 0.75,
+      "rich": 0.5
+    }
   },
   {
     "id": "Y04",
@@ -47,7 +67,12 @@
     "price_high_won": 5000,
     "role": "side",
     "source_id": "yonsei_2026",
-    "price_status": "published_point"
+    "price_status": "published_point",
+    "taste": {
+      "spicy": 0,
+      "salty": 0.5,
+      "rich": 1
+    }
   },
   {
     "id": "Y05",
@@ -57,7 +82,12 @@
     "price_high_won": 2500,
     "role": "side",
     "source_id": "yonsei_2026",
-    "price_status": "published_point"
+    "price_status": "published_point",
+    "taste": {
+      "spicy": 0,
+      "salty": 0.5,
+      "rich": 0.75
+    }
   },
   {
     "id": "Y06",
@@ -67,7 +97,12 @@
     "price_high_won": 6000,
     "role": "side",
     "source_id": "yonsei_2026",
-    "price_status": "published_point"
+    "price_status": "published_point",
+    "taste": {
+      "spicy": 0,
+      "salty": 0.25,
+      "rich": 1
+    }
   },
   {
     "id": "Y07",
@@ -77,7 +112,12 @@
     "price_high_won": 6500,
     "role": "main",
     "source_id": "yonsei_2026",
-    "price_status": "published_point"
+    "price_status": "published_point",
+    "taste": {
+      "spicy": 0,
+      "salty": 0.5,
+      "rich": 0.75
+    }
   },
   {
     "id": "Y08",
@@ -87,7 +127,12 @@
     "price_high_won": 8500,
     "role": "main",
     "source_id": "yonsei_2026",
-    "price_status": "published_point"
+    "price_status": "published_point",
+    "taste": {
+      "spicy": 1,
+      "salty": 0.75,
+      "rich": 0.5
+    }
   },
   {
     "id": "Y09",
@@ -97,7 +142,12 @@
     "price_high_won": 6900,
     "role": "main",
     "source_id": "yonsei_2026",
-    "price_status": "published_point"
+    "price_status": "published_point",
+    "taste": {
+      "spicy": 0.25,
+      "salty": 0.5,
+      "rich": 0.5
+    }
   },
   {
     "id": "Y10",
@@ -107,7 +157,12 @@
     "price_high_won": 7900,
     "role": "main",
     "source_id": "yonsei_2026",
-    "price_status": "published_point"
+    "price_status": "published_point",
+    "taste": {
+      "spicy": 0.5,
+      "salty": 0.5,
+      "rich": 1
+    }
   },
   {
     "id": "Y11",
@@ -117,7 +172,12 @@
     "price_high_won": 8500,
     "role": "main",
     "source_id": "yonsei_2026",
-    "price_status": "published_point"
+    "price_status": "published_point",
+    "taste": {
+      "spicy": 0,
+      "salty": 0.25,
+      "rich": 0.25
+    }
   },
   {
     "id": "Y12",
@@ -127,7 +187,12 @@
     "price_high_won": 8000,
     "role": "main",
     "source_id": "yonsei_2026",
-    "price_status": "published_point"
+    "price_status": "published_point",
+    "taste": {
+      "spicy": 0,
+      "salty": 0.5,
+      "rich": 0.5
+    }
   },
   {
     "id": "Y13",
@@ -137,7 +202,12 @@
     "price_high_won": 6900,
     "role": "main",
     "source_id": "yonsei_2026",
-    "price_status": "published_range_low_anchor"
+    "price_status": "published_range_low_anchor",
+    "taste": {
+      "spicy": 0.25,
+      "salty": 0.5,
+      "rich": 0.5
+    }
   },
   {
     "id": "Y14",
@@ -147,7 +217,12 @@
     "price_high_won": 6900,
     "role": "main",
     "source_id": "yonsei_2026",
-    "price_status": "published_point"
+    "price_status": "published_point",
+    "taste": {
+      "spicy": 0,
+      "salty": 0.5,
+      "rich": 1
+    }
   },
   {
     "id": "Y15",
@@ -157,7 +232,12 @@
     "price_high_won": 7900,
     "role": "main",
     "source_id": "yonsei_2026",
-    "price_status": "published_range_low_anchor"
+    "price_status": "published_range_low_anchor",
+    "taste": {
+      "spicy": 0.5,
+      "salty": 0.5,
+      "rich": 0.25
+    }
   },
   {
     "id": "Y16",
@@ -167,7 +247,12 @@
     "price_high_won": 5900,
     "role": "main",
     "source_id": "yonsei_2026",
-    "price_status": "published_range_low_anchor"
+    "price_status": "published_range_low_anchor",
+    "taste": {
+      "spicy": 0.75,
+      "salty": 0.75,
+      "rich": 0.5
+    }
   },
   {
     "id": "Y17",
@@ -177,7 +262,12 @@
     "price_high_won": 3800,
     "role": "main",
     "source_id": "yonsei_2026",
-    "price_status": "published_point"
+    "price_status": "published_point",
+    "taste": {
+      "spicy": 0.25,
+      "salty": 0.5,
+      "rich": 0.5
+    }
   },
   {
     "id": "A18",
@@ -187,7 +277,12 @@
     "price_high_won": null,
     "role": "main",
     "source_id": "sejong_2026",
-    "price_status": "not_published_assume_from_band"
+    "price_status": "not_published_assume_from_band",
+    "taste": {
+      "spicy": 0,
+      "salty": 0.25,
+      "rich": 0
+    }
   },
   {
     "id": "A19",
@@ -197,7 +292,12 @@
     "price_high_won": null,
     "role": "main",
     "source_id": "sejong_2026",
-    "price_status": "not_published_assume_from_band"
+    "price_status": "not_published_assume_from_band",
+    "taste": {
+      "spicy": 0,
+      "salty": 0.25,
+      "rich": 0.5
+    }
   },
   {
     "id": "A20",
@@ -207,7 +307,12 @@
     "price_high_won": null,
     "role": "main",
     "source_id": "scnu_2022",
-    "price_status": "not_published_assume_from_band"
+    "price_status": "not_published_assume_from_band",
+    "taste": {
+      "spicy": 0,
+      "salty": 0.5,
+      "rich": 1
+    }
   },
   {
     "id": "A21",
@@ -217,7 +322,12 @@
     "price_high_won": null,
     "role": "main",
     "source_id": "scnu_2022",
-    "price_status": "not_published_assume_from_band"
+    "price_status": "not_published_assume_from_band",
+    "taste": {
+      "spicy": 0.75,
+      "salty": 0.75,
+      "rich": 0.5
+    }
   },
   {
     "id": "A22",
@@ -227,6 +337,11 @@
     "price_high_won": null,
     "role": "main",
     "source_id": "scnu_2022",
-    "price_status": "not_published_assume_from_band"
+    "price_status": "not_published_assume_from_band",
+    "taste": {
+      "spicy": 0.5,
+      "salty": 1,
+      "rich": 0.5
+    }
   }
 ]

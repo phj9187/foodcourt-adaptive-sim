@@ -72,3 +72,20 @@ class VenueTests(unittest.TestCase):
 
 
 if __name__=='__main__':unittest.main()
+
+
+class NamedTasteTests(unittest.TestCase):
+    def test_named_tastes_follow_anchor_profiles_and_leave_venue_unchanged(self):
+        import json
+        from kiosk_adaptive.venues import data_file, TASTE_AXES
+        anchors={a['name']:a for a in json.loads(data_file('menu_anchors.json').read_text(encoding='utf-8'))}
+        latent=make_court(Settings(),3,'train',10,8)
+        named=make_court(Settings(taste_model='named').validate(),3,'train',10,8)
+        self.assertEqual(len(latent.dishes),len(named.dishes))
+        for a,b in zip(latent.dishes,named.dishes):
+            self.assertEqual((a.name,a.price,a.cook_minutes,a.counter),(b.name,b.price,b.cook_minutes,b.counter))
+            base=anchors[b.name[3:].rsplit(' ',1)[0]]['taste']
+            for k,v in zip(TASTE_AXES,b.taste):
+                self.assertLessEqual(abs(v-base[k]),.3)
+        self.assertNotEqual([d.taste for d in latent.dishes],[d.taste for d in named.dishes])
+        with self.assertRaises(ValueError):Settings(taste_model='other').validate()
