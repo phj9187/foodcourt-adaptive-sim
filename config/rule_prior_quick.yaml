@@ -1,0 +1,31 @@
+# Quick test (2026-11-10): residual policy = rule_objective score prior + learned PPO correction.
+# Same world as adaptive_extended_taste.yaml, drastically reduced budget (deadline run).
+seed: 20261108
+lhs_samples: 24
+powers: [1.0]
+replicas: 1
+train_courts: 36
+validation_courts: 4
+test_courts: 8
+training_blocks: 12
+period_days: 14
+visitors: 150
+venue_types: [campus]
+demand_mode: exogenous
+demand_scale: 1.0
+behaviour_worlds: [mixed_logit, satisficing, lexicographic]
+comparison_controls: false
+rule_controls: true
+reward_mode: decomposed
+gae_lambda: 0.95
+baseline_audit: false
+evaluation_repeats: 1
+validation_every: 6
+ppo_epochs: 4
+hidden: 48
+threads: 1
+input_minutes: 0.5
+taste_model: named
+dish_taste_sd: 0.06
+policy_prior: rule_objective
+prior_scale: 3.0

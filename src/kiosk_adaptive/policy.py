@@ -12,17 +12,30 @@ INDEX = dict(taste_input=slice(0, 3), budget_input=3, price_input=4, wait_input=
 
 
 class ActorCritic(nn.Module):
-    def __init__(self, hidden=48):
+    """prior: optional RuleController. With a prior the policy is residual:
+    logits = prior_scale * standardized rule score + learned correction, the
+    correction starts at zero, so the untrained policy already ranks menus by
+    the known objective formula and PPO only learns what the formula misses."""
+    def __init__(self, hidden=48, prior=None, prior_scale=3.):
         super().__init__()
         self.encoder = nn.Sequential(nn.Linear(FEATURES, hidden), nn.Tanh(),
                                      nn.Linear(hidden, hidden), nn.Tanh())
         self.actor = nn.Linear(hidden*2, 1)
         self.critic = nn.Sequential(nn.Linear(hidden, hidden), nn.Tanh(), nn.Linear(hidden, 1))
+        self.prior = prior
+        if prior is not None:
+            self.prior_scale = nn.Parameter(torch.tensor(float(prior_scale)))
+            nn.init.zeros_(self.actor.weight); nn.init.zeros_(self.actor.bias)
 
     def forward(self, candidates):
         z = self.encoder(candidates)
         pooled = z.mean(0)
         logits = self.actor(torch.cat((z, pooled.expand_as(z)), -1)).squeeze(-1)
+        if self.prior is not None:
+            with torch.no_grad():
+                score = self.prior.score(candidates).float()
+                score = (score-score.mean())/(score.std(unbiased=False)+1e-6) if len(score)>1 else score*0
+            logits = logits+self.prior_scale*score
         return Categorical(logits=logits), self.critic(pooled).squeeze(-1)
 
 

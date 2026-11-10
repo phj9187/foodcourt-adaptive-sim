@@ -349,7 +349,7 @@ DEFAULT = dict(seed=20261105, lhs_samples=8, powers=[1.0], replicas=3,
                train_courts=12, validation_courts=4, test_courts=8,
                training_blocks=48, period_days=5, visitors=150,
                evaluation_repeats=3, validation_every=12, ppo_epochs=4,
-               hidden=48, learning_rate=.0003, threads=1,venue_types=['campus'],
+               hidden=48, learning_rate=.0003, policy_prior='none', prior_scale=3., threads=1,venue_types=['campus'],
                demand_mode='exogenous',demand_scale=1.,venue_lhs_candidates=24,
                behaviour_worlds=list(WORLDS),comparison_controls=True,
                rule_controls=True,reward_mode='decomposed',gae_lambda=.95,
@@ -368,7 +368,8 @@ def run_job(objective, rep, cfg, settings, catalog, audit, output):
     job.mkdir(parents=True,exist_ok=True)
     seed = seed_for(cfg['seed'],objective.id,rep) % (2**31)
     torch.manual_seed(seed)
-    model = ActorCritic(cfg['hidden'])
+    prior = RuleController('rule_objective',objective,settings.wait_scale,settings.profit_scale) if cfg['policy_prior']=='rule_objective' else None
+    model = ActorCritic(cfg['hidden'],prior,cfg['prior_scale'])
     optimizer = torch.optim.Adam(model.parameters(),lr=cfg['learning_rate'])
     start, best_score, best, history = 0, -float('inf'), None, []
     live_history=[]
@@ -471,6 +472,7 @@ def run(config, output):
     for key in ('comparison_controls','rule_controls','baseline_audit'):
         if type(cfg[key]) is not bool:raise ValueError(key+' must be boolean')
     if cfg['reward_mode'] not in ('daily','decomposed'):raise ValueError('invalid reward_mode')
+    if cfg['policy_prior'] not in ('none','rule_objective') or not 0<=cfg['prior_scale']<=50:raise ValueError('invalid policy_prior/prior_scale')
     if cfg['gae_lambda'] is not None and not 0<=cfg['gae_lambda']<=1:raise ValueError('gae_lambda must be in [0,1] or null')
     cfg['audit_thresholds']=dict(DEFAULT['audit_thresholds'],**(cfg['audit_thresholds'] or {}))
     if any(cfg[k]<len(cfg['venue_types']) for k in ('train_courts','validation_courts','test_courts')):
